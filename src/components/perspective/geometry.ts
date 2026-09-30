@@ -645,3 +645,236 @@ export function computeRoomGeometry(
     },
   };
 }
+
+export interface RoomTheme {
+  id: string;
+  name: string;
+  strokeColor: string;
+  backgroundColor: string;
+  centerWallFill: string;
+  centerWallWaves: string;
+  centerWallText: string;
+  badgeBg: string;
+  badgeBorder: string;
+  badgeText: string;
+  accentColor: string;
+  buttonCapFill: string;
+  buttonSideFill: string;
+  buttonFrontFill: string;
+}
+
+export const ROOM_THEMES: RoomTheme[] = [
+  {
+    id: 'monochrome',
+    name: 'Classic Black',
+    strokeColor: '#0a0a0a',
+    backgroundColor: '#fafafa',
+    centerWallFill: '#0a0a0a',
+    centerWallWaves: '#ffffff',
+    centerWallText: '#ffffff',
+    badgeBg: '#fafafa',
+    badgeBorder: '#0a0a0a',
+    badgeText: '#0a0a0a',
+    accentColor: '#0a0a0a',
+    buttonCapFill: '#ffffff',
+    buttonSideFill: '#d4d4d4',
+    buttonFrontFill: '#a3a3a3',
+  },
+  {
+    id: 'cobalt',
+    name: 'Electric Cobalt',
+    strokeColor: '#0055ff',
+    backgroundColor: '#fafafa',
+    centerWallFill: '#0055ff',
+    centerWallWaves: '#ffffff',
+    centerWallText: '#ffffff',
+    badgeBg: '#fafafa',
+    badgeBorder: '#0a0a0a',
+    badgeText: '#0a0a0a',
+    accentColor: '#0055ff',
+    buttonCapFill: '#ffffff',
+    buttonSideFill: '#d4d4d4',
+    buttonFrontFill: '#a3a3a3',
+  },
+  {
+    id: 'magenta',
+    name: 'Neon Magenta',
+    strokeColor: '#e60067',
+    backgroundColor: '#fafafa',
+    centerWallFill: '#e60067',
+    centerWallWaves: '#ffffff',
+    centerWallText: '#ffffff',
+    badgeBg: '#fafafa',
+    badgeBorder: '#0a0a0a',
+    badgeText: '#0a0a0a',
+    accentColor: '#e60067',
+    buttonCapFill: '#ffffff',
+    buttonSideFill: '#d4d4d4',
+    buttonFrontFill: '#a3a3a3',
+  },
+  {
+    id: 'emerald',
+    name: 'Emerald Matrix',
+    strokeColor: '#008c3a',
+    backgroundColor: '#fafafa',
+    centerWallFill: '#008c3a',
+    centerWallWaves: '#ffffff',
+    centerWallText: '#ffffff',
+    badgeBg: '#fafafa',
+    badgeBorder: '#0a0a0a',
+    badgeText: '#0a0a0a',
+    accentColor: '#008c3a',
+    buttonCapFill: '#ffffff',
+    buttonSideFill: '#d4d4d4',
+    buttonFrontFill: '#a3a3a3',
+  },
+  {
+    id: 'crimson',
+    name: 'Arcade Crimson',
+    strokeColor: '#d61818',
+    backgroundColor: '#fafafa',
+    centerWallFill: '#d61818',
+    centerWallWaves: '#ffffff',
+    centerWallText: '#ffffff',
+    badgeBg: '#fafafa',
+    badgeBorder: '#0a0a0a',
+    badgeText: '#0a0a0a',
+    accentColor: '#d61818',
+    buttonCapFill: '#ffffff',
+    buttonSideFill: '#d4d4d4',
+    buttonFrontFill: '#a3a3a3',
+  },
+  {
+    id: 'purple',
+    name: 'Ultraviolet Purple',
+    strokeColor: '#7b1fa2',
+    backgroundColor: '#fafafa',
+    centerWallFill: '#7b1fa2',
+    centerWallWaves: '#ffffff',
+    centerWallText: '#ffffff',
+    badgeBg: '#fafafa',
+    badgeBorder: '#0a0a0a',
+    badgeText: '#0a0a0a',
+    accentColor: '#7b1fa2',
+    buttonCapFill: '#ffffff',
+    buttonSideFill: '#d4d4d4',
+    buttonFrontFill: '#a3a3a3',
+  },
+  {
+    id: 'amber',
+    name: 'Solar Amber',
+    strokeColor: '#c76a00',
+    backgroundColor: '#fafafa',
+    centerWallFill: '#c76a00',
+    centerWallWaves: '#ffffff',
+    centerWallText: '#ffffff',
+    badgeBg: '#fafafa',
+    badgeBorder: '#0a0a0a',
+    badgeText: '#0a0a0a',
+    accentColor: '#c76a00',
+    buttonCapFill: '#ffffff',
+    buttonSideFill: '#d4d4d4',
+    buttonFrontFill: '#a3a3a3',
+  },
+];
+
+export interface FloorButtonGeometry {
+  socketPoints: Point[];
+  basePoints: Point[];
+  topPoints: Point[];
+  frontFace: Point[];
+  leftFace: Point[];
+  center: Point;
+}
+
+export function computeFloorButtonGeometry(
+  config: PerspectiveRoomConfig,
+  height: number,
+  colOffset = 3,
+  depthOffset = 3
+): FloorButtonGeometry {
+  const {
+    vanishingPoint: vp,
+    roomBounds: bounds,
+    backWallScale: s,
+    horizontalSubdivisions,
+    depthSteps,
+  } = config;
+
+  const col = Math.max(1, horizontalSubdivisions - colOffset);
+  const depthIdx = Math.min(
+    depthSteps - 2,
+    Math.max(2, depthSteps - depthOffset)
+  );
+
+  const scales = computePerspectiveDepthScales(s, depthSteps);
+  const tBack = scales[depthIdx];
+  const tFront = scales[depthIdx + 1];
+
+  const xLeft =
+    bounds.left +
+    (col / horizontalSubdivisions) * (bounds.right - bounds.left);
+  const xRight =
+    bounds.left +
+    ((col + 1) / horizontalSubdivisions) * (bounds.right - bounds.left);
+
+  const cellTL = projectFromVanishingPoint(
+    vp,
+    { x: xLeft, y: bounds.bottom },
+    tBack
+  );
+  const cellTR = projectFromVanishingPoint(
+    vp,
+    { x: xRight, y: bounds.bottom },
+    tBack
+  );
+  const cellBR = projectFromVanishingPoint(
+    vp,
+    { x: xRight, y: bounds.bottom },
+    tFront
+  );
+  const cellBL = projectFromVanishingPoint(
+    vp,
+    { x: xLeft, y: bounds.bottom },
+    tFront
+  );
+
+  const cellCenter: Point = {
+    x: (cellTL.x + cellTR.x + cellBR.x + cellBL.x) / 4,
+    y: (cellTL.y + cellTR.y + cellBR.y + cellBL.y) / 4,
+  };
+
+  const lerpPoint = (p: Point, c: Point, factor: number): Point => ({
+    x: p.x + factor * (c.x - p.x),
+    y: p.y + factor * (c.y - p.y),
+  });
+
+  const socketTL = lerpPoint(cellTL, cellCenter, 0.08);
+  const socketTR = lerpPoint(cellTR, cellCenter, 0.08);
+  const socketBR = lerpPoint(cellBR, cellCenter, 0.08);
+  const socketBL = lerpPoint(cellBL, cellCenter, 0.08);
+
+  const baseTL = lerpPoint(cellTL, cellCenter, 0.18);
+  const baseTR = lerpPoint(cellTR, cellCenter, 0.18);
+  const baseBR = lerpPoint(cellBR, cellCenter, 0.18);
+  const baseBL = lerpPoint(cellBL, cellCenter, 0.18);
+
+  const topTL: Point = { x: baseTL.x, y: baseTL.y - height };
+  const topTR: Point = { x: baseTR.x, y: baseTR.y - height };
+  const topBR: Point = { x: baseBR.x, y: baseBR.y - height };
+  const topBL: Point = { x: baseBL.x, y: baseBL.y - height };
+
+  const capCenter: Point = {
+    x: (topTL.x + topTR.x + topBR.x + topBL.x) / 4,
+    y: (topTL.y + topTR.y + topBR.y + topBL.y) / 4,
+  };
+
+  return {
+    socketPoints: [socketTL, socketTR, socketBR, socketBL],
+    basePoints: [baseTL, baseTR, baseBR, baseBL],
+    topPoints: [topTL, topTR, topBR, topBL],
+    frontFace: [baseBL, baseBR, topBR, topBL],
+    leftFace: [baseTL, baseBL, topBL, topTL],
+    center: capCenter,
+  };
+}

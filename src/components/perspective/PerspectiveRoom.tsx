@@ -19,11 +19,14 @@ import {
   type Point,
   type WallSlideItem,
   type SideBreathingMode,
+  ROOM_THEMES,
+  type RoomTheme,
 } from './geometry';
 import { RoomPlane } from './RoomPlane';
 import { PerspectiveGrid } from './PerspectiveGrid';
+import { FloorButton3D } from './FloorButton3D';
 
-const WALL_PITCH_PERCENT = 114;
+const WALL_PITCH_PERCENT = 107;
 const PIXEL_STEP_DIVISIONS = 14;
 const SCROLL_VH_PER_STEP = 220;
 
@@ -42,14 +45,16 @@ export interface PerspectiveRoomProps {
   centerWallText?: string;
   rightWallImage?: string;
   extraTextSlides?: string[];
+  initialThemeIndex?: number;
+  onThemeChange?: (theme: RoomTheme) => void;
   className?: string;
 }
 
 export function PerspectiveRoom({
   vanishingPoint,
   backWallScale,
-  strokeColor = '#0a0a0a',
-  backgroundColor = '#fafafa',
+  strokeColor,
+  backgroundColor,
   strokeWidth = 1,
   boundaryStrokeWidth = 1.6,
   horizontalSubdivisions,
@@ -60,8 +65,23 @@ export function PerspectiveRoom({
   centerWallText = 'NA',
   rightWallImage = mePortrait,
   extraTextSlides = DEFAULT_EXTRA_TEXT_SLIDES,
+  initialThemeIndex = 0,
+  onThemeChange,
   className = '',
 }: PerspectiveRoomProps) {
+  const [themeIndex, setThemeIndex] = useState(initialThemeIndex);
+  const currentTheme = ROOM_THEMES[themeIndex % ROOM_THEMES.length];
+  const activeStrokeColor = strokeColor ?? currentTheme.strokeColor;
+  const activeBackgroundColor = backgroundColor ?? '#fafafa';
+
+  const handleThemeToggle = () => {
+    setThemeIndex((prev) => {
+      const next = (prev + 1) % ROOM_THEMES.length;
+      onThemeChange?.(ROOM_THEMES[next]);
+      return next;
+    });
+  };
+
   const [viewport, setViewport] = useState<{ width: number; height: number }>(() => {
     if (typeof window !== 'undefined') {
       return { width: window.innerWidth, height: window.innerHeight };
@@ -308,6 +328,7 @@ export function PerspectiveRoom({
                 wordSpacing={ARCADE_WORD_SPACING}
                 fill={textColor}
                 className="font-arcadeclassic"
+                style={{ transition: 'fill 0.25s ease' }}
               >
                 {slide.text}
               </text>
@@ -323,12 +344,16 @@ export function PerspectiveRoom({
       className={`relative w-full ${className}`}
       style={{
         height: `${100 + maxScrollSteps * SCROLL_VH_PER_STEP}vh`,
-        backgroundColor,
+        backgroundColor: activeBackgroundColor,
+        transition: 'background-color 0.25s ease',
       }}
     >
       <div
         className="fixed inset-0 w-screen h-screen overflow-hidden"
-        style={{ backgroundColor }}
+        style={{
+          backgroundColor: activeBackgroundColor,
+          transition: 'background-color 0.25s ease',
+        }}
         data-testid="perspective-room-container"
       >
         <div
@@ -348,7 +373,7 @@ export function PerspectiveRoom({
               ref={rightTrackRef}
               className="relative w-full h-full will-change-transform"
             >
-              {renderWallSlides(2, strokeColor, 'left')}
+              {renderWallSlides(2, '#0a0a0a', 'left')}
             </div>
           </div>
         </div>
@@ -374,7 +399,7 @@ export function PerspectiveRoom({
             <RoomPlane
               id="ceiling"
               points={geometry.planes.ceiling}
-              stroke={strokeColor}
+              stroke={activeStrokeColor}
               strokeWidth={boundaryStrokeWidth}
               fill="none"
             />
@@ -384,7 +409,7 @@ export function PerspectiveRoom({
             <RoomPlane
               id="left-wall"
               points={geometry.planes.leftWall}
-              stroke={strokeColor}
+              stroke={activeStrokeColor}
               strokeWidth={boundaryStrokeWidth}
               fill="none"
             >
@@ -397,7 +422,8 @@ export function PerspectiveRoom({
                       y={node.y - node.r}
                       width={node.r * 2}
                       height={node.r * 2}
-                      fill={strokeColor}
+                      fill={activeStrokeColor}
+                      style={{ transition: 'fill 0.25s ease' }}
                     />
                   ) : (
                     <circle
@@ -405,7 +431,8 @@ export function PerspectiveRoom({
                       cx={node.x}
                       cy={node.y}
                       r={node.r}
-                      fill={strokeColor}
+                      fill={activeStrokeColor}
+                      style={{ transition: 'fill 0.25s ease' }}
                     />
                   )
                 )}
@@ -417,7 +444,7 @@ export function PerspectiveRoom({
             <RoomPlane
               id="right-wall"
               points={geometry.planes.rightWall}
-              stroke={strokeColor}
+              stroke={activeStrokeColor}
               strokeWidth={boundaryStrokeWidth}
               fill="none"
             />
@@ -427,9 +454,9 @@ export function PerspectiveRoom({
             <RoomPlane
               id="back-wall"
               points={geometry.planes.backWall}
-              stroke={strokeColor}
+              stroke={activeStrokeColor}
               strokeWidth={boundaryStrokeWidth}
-              fill={strokeColor}
+              fill={activeStrokeColor}
             >
               <g clipPath="url(#back-wall-clip)" data-layer="back-wall-waves">
                 {geometry.backWallWaves.map((wave) => (
@@ -437,7 +464,7 @@ export function PerspectiveRoom({
                     key={wave.id}
                     d={wave.d}
                     fill="none"
-                    stroke={backgroundColor}
+                    stroke="#ffffff"
                     strokeWidth={strokeWidth}
                     vectorEffect="non-scaling-stroke"
                     strokeLinecap="round"
@@ -452,7 +479,7 @@ export function PerspectiveRoom({
             <RoomPlane
               id="floor"
               points={geometry.planes.floor}
-              stroke={strokeColor}
+              stroke={activeStrokeColor}
               strokeWidth={boundaryStrokeWidth}
               fill="none"
             />
@@ -461,37 +488,46 @@ export function PerspectiveRoom({
           <g id="layer-7-perspective-guide-lines">
             <PerspectiveGrid
               lines={geometry.grids.ceilingRadial}
-              stroke={strokeColor}
+              stroke={activeStrokeColor}
               strokeWidth={strokeWidth}
               data-layer="ceiling-radial"
             />
 
             <PerspectiveGrid
               lines={geometry.grids.ceilingTransverse}
-              stroke={strokeColor}
+              stroke={activeStrokeColor}
               strokeWidth={strokeWidth}
               data-layer="ceiling-transverse"
             />
 
             <PerspectiveGrid
               lines={geometry.grids.floorRadial}
-              stroke={strokeColor}
+              stroke={activeStrokeColor}
               strokeWidth={strokeWidth}
               data-layer="floor-radial"
             />
 
             <PerspectiveGrid
               lines={geometry.grids.floorTransverse}
-              stroke={strokeColor}
+              stroke={activeStrokeColor}
               strokeWidth={strokeWidth}
               data-layer="floor-transverse"
             />
 
             <PerspectiveGrid
               lines={geometry.cornerRays}
-              stroke={strokeColor}
+              stroke={activeStrokeColor}
               strokeWidth={boundaryStrokeWidth}
               data-layer="primary-corner-rays"
+            />
+          </g>
+
+          <g id="layer-8-floor-3d-button" data-layer="floor-3d-button">
+            <FloorButton3D
+              config={activeConfig}
+              currentTheme={currentTheme}
+              onThemeToggle={handleThemeToggle}
+              strokeWidth={strokeWidth}
             />
           </g>
         </svg>
@@ -512,7 +548,7 @@ export function PerspectiveRoom({
               ref={leftTrackRef}
               className="relative w-full h-full will-change-transform"
             >
-              {renderWallSlides(0, strokeColor, 'right')}
+              {renderWallSlides(0, '#0a0a0a', 'right')}
             </div>
           </div>
         </div>
@@ -540,9 +576,11 @@ export function PerspectiveRoom({
             className="absolute z-20 left-[13%] -translate-y-1/2 flex items-center justify-center px-6 py-1.5 md:px-8 md:py-2 border-[1.5px] select-none font-minecraft text-base md:text-xl lg:text-2xl tracking-wider leading-none"
             style={{
               top: `${badgeTopPercent}%`,
-              backgroundColor,
-              borderColor: strokeColor,
-              color: strokeColor,
+              backgroundColor: '#fafafa',
+              borderColor: '#0a0a0a',
+              color: '#0a0a0a',
+              transition:
+                'background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease',
             }}
           >
             <span className="translate-y-[1px]">{brandLabel}</span>

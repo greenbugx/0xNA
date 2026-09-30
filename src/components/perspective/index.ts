@@ -22,6 +22,10 @@ export {
   computeArcadeTextViewBox,
   projectFromVanishingPoint,
   computePerspectiveDepthScales,
+  ROOM_THEMES,
+  type RoomTheme,
+  type FloorButtonGeometry,
+  computeFloorButtonGeometry,
   type Point,
   type RoomBounds,
   type LineSegment,
@@ -32,4 +36,8 @@ export {
   type PerspectiveRoomConfig,
   type ComputedRoomGeometry,
 } from './geometry';
+export {
+  FloorButton3D,
+  type FloorButton3DProps,
+} from './FloorButton3D';
 
