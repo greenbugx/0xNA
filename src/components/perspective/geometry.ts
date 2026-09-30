@@ -31,6 +31,14 @@ export interface BackWallWavePath {
   d: string;
 }
 
+export interface WallSlideItem {
+  id: string;
+  kind: 'text' | 'image';
+  text?: string;
+  imageSrc?: string;
+  initialWallPos: number;
+}
+
 export interface PerspectiveRoomConfig {
   vanishingPoint: Point;
   roomBounds: RoomBounds;
@@ -87,6 +95,70 @@ export const DEFAULT_PERSPECTIVE_CONFIG: PerspectiveRoomConfig = {
   verticalSubdivisions: 8,
   depthSteps: 10,
 };
+
+export const DEFAULT_EXTRA_TEXT_SLIDES: string[] = [
+  'HI',
+  'MY',
+  'NAME',
+  'IS',
+  'JESUS',
+  'CHETIA',
+];
+
+export const ARCADE_WORD_SPACING = 200;
+
+export type SideBreathingMode = 'none' | 'left' | 'right';
+
+export function computeArcadeTextViewBox(
+  text: string,
+  sideBreathing: SideBreathingMode = 'none'
+): string {
+  const upper = text.toUpperCase();
+  if (!upper) {
+    return '0 0 1000 498';
+  }
+
+  const firstChar = upper[0];
+  let minX = 1;
+  if (firstChar === '1') minX = 65;
+  else if (firstChar === 'E') minX = 4;
+  else if (firstChar === 'I') minX = 51;
+  else if (firstChar === 'Y') minX = 36;
+  else if (firstChar === 'L' || firstChar === 'T') minX = -35;
+
+  let cursorX = 0;
+  let maxX = 499;
+
+  for (let idx = 0; idx < upper.length; idx++) {
+    const ch = upper[idx];
+    if (ch === ' ') {
+      cursorX += 128 + ARCADE_WORD_SPACING;
+      continue;
+    }
+
+    let charRight = 499;
+    if (ch === '1') charRight = 492;
+    else if (ch === 'I') charRight = 478;
+    else if (ch === 'Y') charRight = 463;
+    else if (ch === 'E') charRight = 508;
+    else if (ch === 'L' || ch === 'T') charRight = 392;
+
+    maxX = cursorX + charRight;
+    cursorX += 550;
+  }
+
+  const tightWidth = Math.max(100, maxX - minX);
+  const pad = Math.round(tightWidth * 0.065);
+
+  if (sideBreathing === 'left') {
+    return `${minX - pad} 0 ${tightWidth + pad} 498`;
+  }
+  if (sideBreathing === 'right') {
+    return `${minX} 0 ${tightWidth + pad} 498`;
+  }
+
+  return `${minX} 0 ${tightWidth} 498`;
+}
 
 export function projectFromVanishingPoint(
   vanishingPoint: Point,
@@ -573,4 +645,3 @@ export function computeRoomGeometry(
     },
   };
 }
-

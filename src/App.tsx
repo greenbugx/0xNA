@@ -2,7 +2,7 @@ import { PerspectiveRoom } from './components/perspective';
 
 export default function App() {
   return (
-    <main className="w-screen h-screen overflow-hidden bg-[#fafafa]">
+    <main className="relative w-full bg-[#fafafa]">
       <PerspectiveRoom
         strokeColor="#0a0a0a"
         backgroundColor="#fafafa"
