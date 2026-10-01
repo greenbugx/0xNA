@@ -36,6 +36,46 @@ const THEME_REVEAL_DURATION_MS = 720;
 const THEME_REVEAL_MAX_STEP_MS = 24;
 const THEME_REVEAL_EDGE_PADDING_PX = 2;
 const THEME_REVEAL_WATCHDOG_MS = 6000;
+const THEME_REVEAL_PIXEL_MIN = 12;
+const THEME_REVEAL_PIXEL_MAX = 24;
+const THEME_REVEAL_PIXEL_VIEWPORT_DIVISOR = 45;
+
+function buildRevealClip(
+  radius: number,
+  originX: number,
+  originY: number,
+  pixelSize: number,
+  width: number,
+  height: number
+): string {
+  if (!(radius > pixelSize / 2)) {
+    return `circle(0px at ${originX}px ${originY}px)`;
+  }
+  const firstY = Math.max(0, Math.floor((originY - radius) / pixelSize) * pixelSize);
+  const lastY = Math.min(height, Math.ceil((originY + radius) / pixelSize) * pixelSize);
+  const rows: Array<[number, number, number]> = [];
+  for (let y = firstY; y < lastY; y += pixelSize) {
+    const dy = y + pixelSize / 2 - originY;
+    const span = radius * radius - dy * dy;
+    if (span <= 0) continue;
+    const half = Math.sqrt(span);
+    const left = Math.max(0, Math.floor((originX - half) / pixelSize) * pixelSize);
+    const right = Math.min(width, Math.ceil((originX + half) / pixelSize) * pixelSize);
+    if (right > left) rows.push([y, left, right]);
+  }
+  if (!rows.length) {
+    return `circle(0px at ${originX}px ${originY}px)`;
+  }
+  const points: string[] = [];
+  for (const [y, left] of rows) {
+    points.push(`${left}px ${y}px`, `${left}px ${y + pixelSize}px`);
+  }
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const [y, , right] = rows[i];
+    points.push(`${right}px ${y + pixelSize}px`, `${right}px ${y}px`);
+  }
+  return `polygon(${points.join(', ')})`;
+}
 
 export interface PerspectiveRoomProps {
   vanishingPoint?: Point;
@@ -144,6 +184,21 @@ export function PerspectiveRoom({
         Math.max(y, window.innerHeight - y)
       ) + THEME_REVEAL_EDGE_PADDING_PX;
 
+    const pixelSize = Math.min(
+      THEME_REVEAL_PIXEL_MAX,
+      Math.max(
+        THEME_REVEAL_PIXEL_MIN,
+        Math.round(Math.min(window.innerWidth, window.innerHeight) / THEME_REVEAL_PIXEL_VIEWPORT_DIVISOR)
+      )
+    );
+    const applyReveal = (progress: number) => {
+      document.documentElement.style.setProperty(
+        '--theme-reveal-clip',
+        buildRevealClip(endRadius * progress, x, y, pixelSize, window.innerWidth, window.innerHeight)
+      );
+    };
+    applyReveal(0);
+
     isTransitioningRef.current = true;
 
     const transition = document.startViewTransition(() => {
@@ -154,11 +209,8 @@ export function PerspectiveRoom({
 
     transition.ready
       .then(() => {
-        const reveal = document.documentElement.animate(
-          [
-            { clipPath: `circle(0px at ${x}px ${y}px)`, offset: 0 },
-            { clipPath: `circle(${endRadius}px at ${x}px ${y}px)`, offset: 1 },
-          ],
+        const hold = document.documentElement.animate(
+          [{ '--theme-reveal-drive': 0 }, { '--theme-reveal-drive': 1 }],
           {
             duration: THEME_REVEAL_DURATION_MS,
             easing: 'linear',
@@ -167,7 +219,7 @@ export function PerspectiveRoom({
           }
         );
 
-        reveal.playbackRate = 0;
+        hold.playbackRate = 0;
         let elapsed = 0;
         let previous = performance.now();
         let settled = false;
@@ -182,8 +234,10 @@ export function PerspectiveRoom({
           settled = true;
           window.clearTimeout(watchdog);
           document.removeEventListener('visibilitychange', onVisibilityChange);
-          if (snapToEnd) reveal.currentTime = THEME_REVEAL_DURATION_MS;
-          reveal.playbackRate = 1;
+          if (snapToEnd) applyReveal(1);
+          hold.currentTime = THEME_REVEAL_DURATION_MS;
+          hold.playbackRate = 1;
+          document.documentElement.style.removeProperty('--theme-reveal-clip');
         };
 
         const step = (now: number) => {
@@ -191,11 +245,11 @@ export function PerspectiveRoom({
           elapsed += Math.min(Math.max(now - previous, 0), THEME_REVEAL_MAX_STEP_MS);
           previous = now;
           if (elapsed >= THEME_REVEAL_DURATION_MS) {
-            reveal.currentTime = THEME_REVEAL_DURATION_MS;
+            applyReveal(1);
             requestAnimationFrame(() => finish(false));
             return;
           }
-          reveal.currentTime = elapsed;
+          applyReveal(elapsed / THEME_REVEAL_DURATION_MS);
           requestAnimationFrame(step);
         };
 

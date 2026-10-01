@@ -64,6 +64,13 @@ body::-webkit-scrollbar {
 
 ::view-transition-new(root) {
   z-index: 9999;
+  clip-path: var(--theme-reveal-clip, none);
+}
+
+@property --theme-reveal-drive {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
