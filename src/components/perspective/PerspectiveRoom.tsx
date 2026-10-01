@@ -95,8 +95,8 @@ export function PerspectiveRoom({
   const centerWallFill = isMonochrome
     ? (isDark ? '#ffffff' : '#0a0a0a')
     : activeStrokeColor;
-  const centerWallTextColor = isDark && isMonochrome ? '#0a0a0a' : '#ffffff';
-  const centerWallWaveStroke = isDark && isMonochrome ? '#0a0a0a' : '#ffffff';
+  const centerWallTextColor = isDark ? '#0a0a0a' : '#ffffff';
+  const centerWallWaveStroke = isDark ? '#0a0a0a' : '#ffffff';
   const badgeBg = isDark ? '#0a0a0a' : '#fafafa';
   const badgeBorder = isDark ? '#ffffff' : '#0a0a0a';
   const badgeText = isDark ? '#ffffff' : '#0a0a0a';
