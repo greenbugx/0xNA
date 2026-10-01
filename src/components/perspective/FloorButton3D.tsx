@@ -37,7 +37,7 @@ export function FloorButton3D({
   onThemeToggle,
   onModeToggle,
   mode,
-  initialMode = 'light',
+  initialMode = 'dark',
   strokeWidth = 1,
   colOffset = 3,
   depthOffset = 3,

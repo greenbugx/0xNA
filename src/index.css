@@ -37,7 +37,7 @@ body {
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  background-color: #fafafa;
+  background-color: #0a0a0a;
 }
 
 html::-webkit-scrollbar,

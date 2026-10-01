@@ -117,7 +117,7 @@ export function PerspectiveRoom({
   extraTextSlides = DEFAULT_EXTRA_TEXT_SLIDES,
   initialThemeIndex = 0,
   onThemeChange,
-  initialMode = 'light',
+  initialMode = 'dark',
   mode: controlledMode,
   onModeChange,
   className = '',
