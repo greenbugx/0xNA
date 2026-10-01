@@ -526,6 +526,17 @@ export function PerspectiveRoom({
             <FloorButton3D
               config={activeConfig}
               currentTheme={currentTheme}
+              cellCol={2}
+              depthOffset={3}
+              icon="sun-moon"
+              strokeWidth={strokeWidth}
+            />
+            <FloorButton3D
+              config={activeConfig}
+              currentTheme={currentTheme}
+              colOffset={3}
+              depthOffset={3}
+              icon="color-spectrum"
               onThemeToggle={handleThemeToggle}
               strokeWidth={strokeWidth}
             />

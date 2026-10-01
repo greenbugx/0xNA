@@ -39,5 +39,6 @@ export {
 export {
   FloorButton3D,
   type FloorButton3DProps,
+  type FloorButtonIcon,
 } from './FloorButton3D';
 

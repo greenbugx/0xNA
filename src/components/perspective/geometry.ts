@@ -784,6 +784,8 @@ export interface FloorButtonGeometry {
   topPoints: Point[];
   frontFace: Point[];
   leftFace: Point[];
+  rightFace: Point[];
+  sideFace: Point[];
   center: Point;
 }
 
@@ -791,7 +793,9 @@ export function computeFloorButtonGeometry(
   config: PerspectiveRoomConfig,
   height: number,
   colOffset = 3,
-  depthOffset = 3
+  depthOffset = 3,
+  cellCol?: number,
+  cellDepth?: number
 ): FloorButtonGeometry {
   const {
     vanishingPoint: vp,
@@ -801,11 +805,15 @@ export function computeFloorButtonGeometry(
     depthSteps,
   } = config;
 
-  const col = Math.max(1, horizontalSubdivisions - colOffset);
-  const depthIdx = Math.min(
-    depthSteps - 2,
-    Math.max(2, depthSteps - depthOffset)
-  );
+  const col =
+    cellCol !== undefined
+      ? Math.max(0, Math.min(horizontalSubdivisions - 1, cellCol))
+      : Math.max(1, horizontalSubdivisions - colOffset);
+
+  const depthIdx =
+    cellDepth !== undefined
+      ? Math.max(1, Math.min(depthSteps - 2, cellDepth))
+      : Math.min(depthSteps - 2, Math.max(2, depthSteps - depthOffset));
 
   const scales = computePerspectiveDepthScales(s, depthSteps);
   const tBack = scales[depthIdx];
@@ -869,12 +877,18 @@ export function computeFloorButtonGeometry(
     y: (topTL.y + topTR.y + topBR.y + topBL.y) / 4,
   };
 
+  const leftFace: Point[] = [baseTL, baseBL, topBL, topTL];
+  const rightFace: Point[] = [baseTR, baseBR, topBR, topTR];
+  const sideFace: Point[] = capCenter.x < vp.x ? rightFace : leftFace;
+
   return {
     socketPoints: [socketTL, socketTR, socketBR, socketBL],
     basePoints: [baseTL, baseTR, baseBR, baseBL],
     topPoints: [topTL, topTR, topBR, topBL],
     frontFace: [baseBL, baseBR, topBR, topBL],
-    leftFace: [baseTL, baseBL, topBL, topTL],
+    leftFace,
+    rightFace,
+    sideFace,
     center: capCenter,
   };
 }
