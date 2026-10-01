@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   computeFloorButtonGeometry,
   pointsToSvgPolygon,
@@ -18,7 +18,7 @@ export interface FloorButton3DProps {
   currentTheme: RoomTheme;
   onClick?: () => void;
   onThemeToggle?: () => void;
-  onModeToggle?: (nextMode: 'light' | 'dark') => void;
+  onModeToggle?: (nextMode: 'light' | 'dark', origin?: { x: number; y: number }) => void;
   mode?: 'light' | 'dark';
   initialMode?: 'light' | 'dark';
   strokeWidth?: number;
@@ -46,6 +46,7 @@ export function FloorButton3D({
   icon = 'color-spectrum',
   ariaLabel,
 }: FloorButton3DProps) {
+  const buttonRef = useRef<SVGGElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [internalMode, setInternalMode] = useState<'light' | 'dark'>(initialMode);
@@ -94,11 +95,32 @@ export function FloorButton3D({
     [geom.sideFace, geom.leftFace]
   );
 
-  const handleAction = () => {
+  const getOrigin = (e?: React.PointerEvent | React.MouseEvent): { x: number; y: number } => {
+    if (e && typeof e.clientX === 'number' && typeof e.clientY === 'number' && (e.clientX !== 0 || e.clientY !== 0)) {
+      return { x: e.clientX, y: e.clientY };
+    }
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    }
+    return {
+      x: typeof window !== 'undefined' ? window.innerWidth * 0.25 : 0,
+      y: typeof window !== 'undefined' ? window.innerHeight * 0.85 : 0,
+    };
+  };
+
+  const handleAction = (e?: React.PointerEvent | React.MouseEvent) => {
     if (isModeButton) {
       const nextMode = activeMode === 'light' ? 'dark' : 'light';
-      setInternalMode(nextMode);
-      onModeToggle?.(nextMode);
+      const origin = getOrigin(e);
+      if (onModeToggle) {
+        onModeToggle(nextMode, origin);
+      } else {
+        setInternalMode(nextMode);
+      }
     }
     if (onClick) {
       onClick();
@@ -125,6 +147,7 @@ export function FloorButton3D({
 
   return (
     <g
+      ref={buttonRef}
       role="button"
       tabIndex={0}
       aria-label={computedAriaLabel}
@@ -141,7 +164,7 @@ export function FloorButton3D({
       onPointerUp={(e) => {
         e.stopPropagation();
         setIsPressed(false);
-        handleAction();
+        handleAction(e);
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

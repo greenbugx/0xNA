@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import Lenis from 'lenis';
 import meDarkPortrait from '../../assets/images/me.webp';
 import meLightPortrait from '../../assets/images/me-bg.webp';
@@ -30,6 +31,11 @@ import { FloorButton3D } from './FloorButton3D';
 const WALL_PITCH_PERCENT = 107;
 const PIXEL_STEP_DIVISIONS = 14;
 const SCROLL_VH_PER_STEP = 220;
+
+const THEME_REVEAL_DURATION_MS = 720;
+const THEME_REVEAL_MAX_STEP_MS = 24;
+const THEME_REVEAL_EDGE_PADDING_PX = 2;
+const THEME_REVEAL_WATCHDOG_MS = 6000;
 
 export interface PerspectiveRoomProps {
   vanishingPoint?: Point;
@@ -101,9 +107,117 @@ export function PerspectiveRoom({
   const badgeBorder = isDark ? '#ffffff' : '#0a0a0a';
   const badgeText = isDark ? '#ffffff' : '#0a0a0a';
 
-  const handleModeToggle = (nextMode: 'light' | 'dark') => {
-    setInternalMode(nextMode);
-    onModeChange?.(nextMode);
+  const isTransitioningRef = useRef(false);
+
+  const handleModeToggle = (nextMode: 'light' | 'dark', origin?: { x: number; y: number }) => {
+    if (isTransitioningRef.current) {
+      return;
+    }
+
+    const switchTheme = () => {
+      document.documentElement.classList.toggle('dark', nextMode === 'dark');
+      document.documentElement.style.backgroundColor = nextMode === 'dark' ? '#0a0a0a' : '#fafafa';
+      document.body.style.backgroundColor = nextMode === 'dark' ? '#0a0a0a' : '#fafafa';
+      setInternalMode(nextMode);
+      onModeChange?.(nextMode);
+    };
+
+    const hasViewTransition =
+      typeof document !== 'undefined' &&
+      'startViewTransition' in document &&
+      typeof document.startViewTransition === 'function';
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!hasViewTransition || prefersReducedMotion) {
+      switchTheme();
+      return;
+    }
+
+    const x = origin?.x ?? (typeof window !== 'undefined' ? window.innerWidth * 0.25 : 0);
+    const y = origin?.y ?? (typeof window !== 'undefined' ? window.innerHeight * 0.85 : 0);
+    const endRadius =
+      Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+      ) + THEME_REVEAL_EDGE_PADDING_PX;
+
+    isTransitioningRef.current = true;
+
+    const transition = document.startViewTransition(() => {
+      flushSync(() => {
+        switchTheme();
+      });
+    });
+
+    transition.ready
+      .then(() => {
+        const reveal = document.documentElement.animate(
+          [
+            { clipPath: `circle(0px at ${x}px ${y}px)`, offset: 0 },
+            { clipPath: `circle(${endRadius}px at ${x}px ${y}px)`, offset: 1 },
+          ],
+          {
+            duration: THEME_REVEAL_DURATION_MS,
+            easing: 'linear',
+            fill: 'both',
+            pseudoElement: '::view-transition-new(root)',
+          }
+        );
+
+        reveal.playbackRate = 0;
+        let elapsed = 0;
+        let previous = performance.now();
+        let settled = false;
+        let watchdog = 0;
+
+        const onVisibilityChange = () => {
+          if (document.visibilityState === 'hidden') finish(true);
+        };
+
+        const finish = (snapToEnd: boolean) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(watchdog);
+          document.removeEventListener('visibilitychange', onVisibilityChange);
+          if (snapToEnd) reveal.currentTime = THEME_REVEAL_DURATION_MS;
+          reveal.playbackRate = 1;
+        };
+
+        const step = (now: number) => {
+          if (settled) return;
+          elapsed += Math.min(Math.max(now - previous, 0), THEME_REVEAL_MAX_STEP_MS);
+          previous = now;
+          if (elapsed >= THEME_REVEAL_DURATION_MS) {
+            reveal.currentTime = THEME_REVEAL_DURATION_MS;
+            requestAnimationFrame(() => finish(false));
+            return;
+          }
+          reveal.currentTime = elapsed;
+          requestAnimationFrame(step);
+        };
+
+        requestAnimationFrame((now) => {
+          previous = now;
+          step(now);
+        });
+
+        watchdog = window.setTimeout(() => finish(true), THEME_REVEAL_WATCHDOG_MS);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+      })
+      .catch(() => {
+        /* transition was skipped before it became ready */
+      });
+
+    transition.finished
+      .catch(() => {
+        /* transition was skipped */
+      })
+      .finally(() => {
+        isTransitioningRef.current = false;
+      });
   };
 
   const handleThemeToggle = () => {
@@ -135,6 +249,16 @@ export function PerspectiveRoom({
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    [meDarkPortrait, meLightPortrait].forEach((src) => {
+      const image = new Image();
+      image.src = src;
+      if (typeof image.decode === 'function') {
+        image.decode().catch(() => {});
+      }
+    });
   }, []);
 
   const activeRightWallImage =
