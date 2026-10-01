@@ -114,6 +114,15 @@ export function FloorButton3D({
     : `Color Theme: ${currentTheme.name}. Click to change color theme`;
   const computedAriaLabel = ariaLabel ?? defaultLabel;
 
+  const isDarkCanvas = isDarkMode || activeMode === 'dark';
+  const buttonCapFill = isDarkCanvas ? '#222222' : currentTheme.buttonCapFill;
+  const buttonSideFill = isDarkCanvas ? '#171717' : currentTheme.buttonSideFill;
+  const buttonFrontFill = isDarkCanvas ? '#0d0d0d' : currentTheme.buttonFrontFill;
+  const buttonStrokeColor =
+    isDarkCanvas && currentTheme.id === 'monochrome'
+      ? '#ffffff'
+      : currentTheme.strokeColor;
+
   return (
     <g
       role="button"
@@ -151,7 +160,7 @@ export function FloorButton3D({
       <polygon
         points={socketPoly}
         fill="none"
-        stroke={currentTheme.strokeColor}
+        stroke={buttonStrokeColor}
         strokeWidth={strokeWidth}
         opacity={0.35}
         strokeDasharray="2.5 2"
@@ -159,30 +168,30 @@ export function FloorButton3D({
 
       <polygon
         points={basePoly}
-        fill={currentTheme.strokeColor}
+        fill={buttonStrokeColor}
         opacity={0.16}
       />
 
       <polygon
         points={sidePoly}
-        fill={currentTheme.buttonSideFill}
-        stroke={currentTheme.strokeColor}
+        fill={buttonSideFill}
+        stroke={buttonStrokeColor}
         strokeWidth={strokeWidth}
         strokeLinejoin="round"
       />
 
       <polygon
         points={frontPoly}
-        fill={currentTheme.buttonFrontFill}
-        stroke={currentTheme.strokeColor}
+        fill={buttonFrontFill}
+        stroke={buttonStrokeColor}
         strokeWidth={strokeWidth}
         strokeLinejoin="round"
       />
 
       <polygon
         points={topPoly}
-        fill={currentTheme.buttonCapFill}
-        stroke={currentTheme.strokeColor}
+        fill={buttonCapFill}
+        stroke={buttonStrokeColor}
         strokeWidth={Math.max(1.3, strokeWidth * 1.35)}
         strokeLinejoin="round"
       />
@@ -196,7 +205,7 @@ export function FloorButton3D({
           cy="0"
           r="9.5"
           fill="none"
-          stroke={currentTheme.strokeColor}
+          stroke={buttonStrokeColor}
           strokeWidth="0.8"
           opacity={0.45}
         />
@@ -209,7 +218,7 @@ export function FloorButton3D({
                 cy="0"
                 r="3.8"
                 fill="#ffb800"
-                stroke={currentTheme.strokeColor}
+                stroke={buttonStrokeColor}
                 strokeWidth="0.6"
               />
               <line
@@ -298,7 +307,7 @@ export function FloorButton3D({
               <path
                 d="M 2.2 -5.5 A 6 6 0 1 0 2.2 5.5 A 5.8 5.8 0 0 1 2.2 -5.5 Z"
                 fill="#18181b"
-                stroke={currentTheme.strokeColor}
+                stroke={buttonStrokeColor}
                 strokeWidth="0.5"
               />
               <path
@@ -349,7 +358,7 @@ export function FloorButton3D({
               cy="0"
               r="3.6"
               fill={currentTheme.accentColor}
-              stroke={currentTheme.backgroundColor}
+              stroke={isDarkCanvas ? '#0a0a0a' : currentTheme.backgroundColor}
               strokeWidth="1.2"
             />
           </g>

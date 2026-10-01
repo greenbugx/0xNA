@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import Lenis from 'lenis';
-import mePortrait from '../../assets/images/me.webp';
+import meDarkPortrait from '../../assets/images/me.webp';
+import meLightPortrait from '../../assets/images/me-bg.webp';
 import {
   ROOM_LEFT,
   ROOM_RIGHT,
@@ -47,6 +48,9 @@ export interface PerspectiveRoomProps {
   extraTextSlides?: string[];
   initialThemeIndex?: number;
   onThemeChange?: (theme: RoomTheme) => void;
+  initialMode?: 'light' | 'dark';
+  mode?: 'light' | 'dark';
+  onModeChange?: (mode: 'light' | 'dark') => void;
   className?: string;
 }
 
@@ -63,16 +67,44 @@ export function PerspectiveRoom({
   brandLabel = '0xNA',
   leftWallText = '0X',
   centerWallText = 'NA',
-  rightWallImage = mePortrait,
+  rightWallImage,
   extraTextSlides = DEFAULT_EXTRA_TEXT_SLIDES,
   initialThemeIndex = 0,
   onThemeChange,
+  initialMode = 'light',
+  mode: controlledMode,
+  onModeChange,
   className = '',
 }: PerspectiveRoomProps) {
+  const [internalMode, setInternalMode] = useState<'light' | 'dark'>(initialMode);
+  const activeMode = controlledMode ?? internalMode;
+  const isDark = activeMode === 'dark';
+
   const [themeIndex, setThemeIndex] = useState(initialThemeIndex);
   const currentTheme = ROOM_THEMES[themeIndex % ROOM_THEMES.length];
-  const activeStrokeColor = strokeColor ?? currentTheme.strokeColor;
-  const activeBackgroundColor = backgroundColor ?? '#fafafa';
+  const isMonochrome = currentTheme.id === 'monochrome';
+  const activeStrokeColor =
+    strokeColor ??
+    (isDark && isMonochrome
+      ? '#ffffff'
+      : currentTheme.strokeColor);
+  const activeBackgroundColor =
+    backgroundColor ?? (isDark ? '#0a0a0a' : '#fafafa');
+
+  const wallTextColor = isDark ? '#ffffff' : '#0a0a0a';
+  const centerWallFill = isMonochrome
+    ? (isDark ? '#ffffff' : '#0a0a0a')
+    : activeStrokeColor;
+  const centerWallTextColor = isDark && isMonochrome ? '#0a0a0a' : '#ffffff';
+  const centerWallWaveStroke = isDark && isMonochrome ? '#0a0a0a' : '#ffffff';
+  const badgeBg = isDark ? '#0a0a0a' : '#fafafa';
+  const badgeBorder = isDark ? '#ffffff' : '#0a0a0a';
+  const badgeText = isDark ? '#ffffff' : '#0a0a0a';
+
+  const handleModeToggle = (nextMode: 'light' | 'dark') => {
+    setInternalMode(nextMode);
+    onModeChange?.(nextMode);
+  };
 
   const handleThemeToggle = () => {
     setThemeIndex((prev) => {
@@ -81,6 +113,10 @@ export function PerspectiveRoom({
       return next;
     });
   };
+
+  useEffect(() => {
+    document.body.style.backgroundColor = activeBackgroundColor;
+  }, [activeBackgroundColor]);
 
   const [viewport, setViewport] = useState<{ width: number; height: number }>(() => {
     if (typeof window !== 'undefined') {
@@ -101,14 +137,17 @@ export function PerspectiveRoom({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const activeRightWallImage =
+    rightWallImage ?? (isDark ? meDarkPortrait : meLightPortrait);
+
   const slides: WallSlideItem[] = useMemo(() => {
     const list: WallSlideItem[] = [];
 
-    if (rightWallImage) {
+    if (activeRightWallImage) {
       list.push({
         id: 'slide-right-image',
         kind: 'image',
-        imageSrc: rightWallImage,
+        imageSrc: activeRightWallImage,
         initialWallPos: 2,
       });
     }
@@ -141,7 +180,7 @@ export function PerspectiveRoom({
     });
 
     return list;
-  }, [rightWallImage, centerWallText, leftWallText, extraTextSlides]);
+  }, [activeRightWallImage, centerWallText, leftWallText, extraTextSlides]);
 
   const maxScrollSteps = useMemo(() => {
     return Math.max(1, extraTextSlides.length);
@@ -310,7 +349,7 @@ export function PerspectiveRoom({
             <img
               src={slide.imageSrc}
               alt=""
-              className="w-full h-full object-cover object-center mix-blend-multiply"
+              className={`w-full h-full object-cover object-center ${isDark ? '' : 'mix-blend-multiply'}`}
               draggable={false}
             />
           ) : slide.kind === 'text' && slide.text ? (
@@ -373,7 +412,7 @@ export function PerspectiveRoom({
               ref={rightTrackRef}
               className="relative w-full h-full will-change-transform"
             >
-              {renderWallSlides(2, '#0a0a0a', 'left')}
+              {renderWallSlides(2, wallTextColor, 'left')}
             </div>
           </div>
         </div>
@@ -456,7 +495,7 @@ export function PerspectiveRoom({
               points={geometry.planes.backWall}
               stroke={activeStrokeColor}
               strokeWidth={boundaryStrokeWidth}
-              fill={activeStrokeColor}
+              fill={centerWallFill}
             >
               <g clipPath="url(#back-wall-clip)" data-layer="back-wall-waves">
                 {geometry.backWallWaves.map((wave) => (
@@ -464,11 +503,12 @@ export function PerspectiveRoom({
                     key={wave.id}
                     d={wave.d}
                     fill="none"
-                    stroke="#ffffff"
+                    stroke={centerWallWaveStroke}
                     strokeWidth={strokeWidth}
                     vectorEffect="non-scaling-stroke"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    style={{ transition: 'stroke 0.25s ease' }}
                   />
                 ))}
               </g>
@@ -529,6 +569,8 @@ export function PerspectiveRoom({
               cellCol={2}
               depthOffset={3}
               icon="sun-moon"
+              mode={activeMode}
+              onModeToggle={handleModeToggle}
               strokeWidth={strokeWidth}
             />
             <FloorButton3D
@@ -537,6 +579,7 @@ export function PerspectiveRoom({
               colOffset={3}
               depthOffset={3}
               icon="color-spectrum"
+              mode={activeMode}
               onThemeToggle={handleThemeToggle}
               strokeWidth={strokeWidth}
             />
@@ -559,7 +602,7 @@ export function PerspectiveRoom({
               ref={leftTrackRef}
               className="relative w-full h-full will-change-transform"
             >
-              {renderWallSlides(0, '#0a0a0a', 'right')}
+              {renderWallSlides(0, wallTextColor, 'right')}
             </div>
           </div>
         </div>
@@ -578,7 +621,7 @@ export function PerspectiveRoom({
             ref={centerTrackRef}
             className="relative w-full h-full will-change-transform"
           >
-            {renderWallSlides(1, '#ffffff', 'none')}
+            {renderWallSlides(1, centerWallTextColor, 'none')}
           </div>
         </div>
 
@@ -587,9 +630,9 @@ export function PerspectiveRoom({
             className="absolute z-20 left-[13%] -translate-y-1/2 flex items-center justify-center px-6 py-1.5 md:px-8 md:py-2 border-[1.5px] select-none font-minecraft text-base md:text-xl lg:text-2xl tracking-wider leading-none"
             style={{
               top: `${badgeTopPercent}%`,
-              backgroundColor: '#fafafa',
-              borderColor: '#0a0a0a',
-              color: '#0a0a0a',
+              backgroundColor: badgeBg,
+              borderColor: badgeBorder,
+              color: badgeText,
               transition:
                 'background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease',
             }}
