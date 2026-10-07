@@ -177,59 +177,80 @@ export default function Dock() {
   );
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  const isPlayingRef = useRef(false);
+  const playlistRef = useRef(playlist);
+  const currentIndexRef = useRef(0);
+
   useEffect(() => {
-    if (audioRef.current && playlist[0]) {
-      audioRef.current.volume = 0.45;
-      audioRef.current.src = playlist[0];
-    }
+    playlistRef.current = playlist;
   }, [playlist]);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio && playlistRef.current[0]) {
+      audio.volume = 0.45;
+      audio.src = playlistRef.current[0];
+    }
+  }, []);
 
   const handleEnded = useCallback(() => {
-    setCurrentIndex((prevIdx) => {
-      if (prevIdx + 1 < playlist.length) {
-        const nextIdx = prevIdx + 1;
-        if (audioRef.current) {
-          audioRef.current.src = playlist[nextIdx];
-          audioRef.current.play().catch(() => {
-            setIsPlaying(false);
-          });
-        }
-        return nextIdx;
-      }
+    if (!isPlayingRef.current) return;
 
-      const lastTrack = playlist[playlist.length - 1];
-      const nextList = generateShuffledPlaylist(lastTrack);
-      setPlaylist(nextList);
-      if (audioRef.current) {
-        audioRef.current.src = nextList[0];
-        audioRef.current.play().catch(() => {
-          setIsPlaying(false);
-        });
-      }
-      return 0;
-    });
-  }, [playlist]);
+    let nextIdx = currentIndexRef.current + 1;
+    let tracks = playlistRef.current;
+
+    if (nextIdx >= tracks.length) {
+      const lastTrack = tracks[tracks.length - 1];
+      tracks = generateShuffledPlaylist(lastTrack);
+      playlistRef.current = tracks;
+      setPlaylist(tracks);
+      nextIdx = 0;
+    }
+
+    currentIndexRef.current = nextIdx;
+    setCurrentIndex(nextIdx);
+
+    const audio = audioRef.current;
+    if (audio && tracks[nextIdx]) {
+      audio.src = tracks[nextIdx];
+      audio.play().catch(() => {});
+      setIsPlaying(true);
+      isPlayingRef.current = true;
+    }
+  }, []);
 
   const toggleAudio = useCallback(() => {
-    if (!audioRef.current) return;
+    const audio = audioRef.current;
+    if (!audio) return;
 
     if (isPlaying) {
-      audioRef.current.pause();
+      audio.pause();
       setIsPlaying(false);
+      isPlayingRef.current = false;
     } else {
-      if (!audioRef.current.src && playlist.length > 0) {
-        audioRef.current.src = playlist[currentIndex];
+      if (!audio.src && playlistRef.current.length > 0) {
+        audio.src = playlistRef.current[currentIndexRef.current];
       }
-      audioRef.current
+      audio
         .play()
         .then(() => {
           setIsPlaying(true);
+          isPlayingRef.current = true;
         })
         .catch(() => {
           setIsPlaying(false);
+          isPlayingRef.current = false;
         });
     }
-  }, [isPlaying, playlist, currentIndex]);
+  }, [isPlaying]);
 
   return (
     <>
@@ -261,9 +282,7 @@ export default function Dock() {
           <DockItem mouseX={mouseX} label="GitHub" href="https://github.com/greenbugx">
             <GithubIcon className="w-full h-full" />
           </DockItem>
-          <DockItem mouseX={mouseX} label="LinkedIn" href="https://linkedin.com/in/jesus-chetia
-
-">
+          <DockItem mouseX={mouseX} label="LinkedIn" href="https://linkedin.com/in/jesus-chetia">
             <LinkedinIcon className="w-full h-full" />
           </DockItem>
           <DockItem mouseX={mouseX} label="X" href="https://x.com/greenbugx">
