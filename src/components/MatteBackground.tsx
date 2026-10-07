@@ -1,3 +1,5 @@
+import FizzingParticles from "./FizzingParticles";
+
 export default function MatteBackground() {
   return (
     <div
@@ -15,6 +17,8 @@ export default function MatteBackground() {
         className="absolute inset-0 opacity-90"
       />
 
+      <FizzingParticles />
+
       <span
         style={{
           background:
@@ -27,4 +31,3 @@ export default function MatteBackground() {
     </div>
   );
 }
-
