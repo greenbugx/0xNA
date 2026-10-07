@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import Dock from "@/components/Dock";
 import MatteBackground from "@/components/MatteBackground";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +28,12 @@ const googleSans = localFont({
   display: "swap",
 });
 
+const googleSansItalic = localFont({
+  src: "../assets/fonts/GoogleSans-Italic.ttf",
+  variable: "--font-google-sans-italic",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "0xNA",
   description: "Personal Portfolio and Projects",
@@ -40,14 +47,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} ${googleSans.variable} dark h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} ${googleSans.variable} ${googleSansItalic.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#09090b] text-[#ededed]">
         <MatteBackground />
-        <div className="relative z-10 flex flex-col flex-1">
-          {children}
-        </div>
-        <Dock />
+        <LoadingScreen>
+          <div className="relative z-10 flex flex-col flex-1">
+            {children}
+          </div>
+          <Dock />
+        </LoadingScreen>
       </body>
     </html>
   );

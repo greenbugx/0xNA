@@ -12,6 +12,7 @@
   --font-mono: var(--font-geist-mono);
   --font-playfairdisplay: var(--font-playfairdisplay);
   --font-google-sans: var(--font-google-sans);
+  --font-google-sans-italic: var(--font-google-sans-italic);
 }
 
 html {
