@@ -1,4 +1,5 @@
 "use client";
+"use no memo";
 
 import React, { useEffect, useRef } from "react";
 
@@ -21,6 +22,9 @@ const DEFAULT_PALETTE = [
   "#0f6e43",
   "#0a5332",
 ];
+
+const LUT_STEPS = 48;
+const WHITE_BUCKETS = 8;
 
 function hexToRgb(color: string): [number, number, number] {
   let hex = color.trim().replace("#", "");
@@ -53,6 +57,7 @@ function interpolateRgb(
   ];
 }
 
+
 export default function FizzingParticles({
   colors = DEFAULT_PALETTE,
   particleCount,
@@ -79,21 +84,12 @@ export default function FizzingParticles({
       colors && colors.length >= 2 ? colors : DEFAULT_PALETTE;
     const rgbPalette = activeColors.map(hexToRgb);
 
-    const LUT_STEPS = 48;
-    const WHITE_BUCKETS = 8;
     const colorLut: string[] = [];
     for (let s = 0; s < LUT_STEPS; s++) {
       const t = s / (LUT_STEPS - 1);
       const [r, g, b] = interpolateRgb(rgbPalette, t);
       colorLut.push(`rgb(${r},${g},${b})`);
     }
-
-    const getCurveX = (y: number, w: number, h: number): number => {
-      const progress = Math.max(0, Math.min(1, y / h));
-      const depth = Math.min(260, w * 0.18);
-      const baseX = w - Math.min(420, w * 0.30);
-      return baseX + Math.sin(progress * Math.PI) * depth;
-    };
 
     const targetTotal =
       particleCount ||
@@ -168,33 +164,51 @@ export default function FizzingParticles({
       pWhitePhase[i] = Math.random() * Math.PI * 2;
     }
 
-    const bucketCount = new Int32Array(LUT_STEPS);
-    const bucketX = Array.from(
-      { length: LUT_STEPS },
-      () => new Int32Array(bodyCount)
-    );
-    const bucketY = Array.from(
-      { length: LUT_STEPS },
-      () => new Int32Array(bodyCount)
-    );
-    const bucketS = Array.from(
-      { length: LUT_STEPS },
-      () => new Float32Array(bodyCount)
-    );
+    const anchorBucket = new Uint8Array(anchorCount);
+    const anchorAmpX = new Float64Array(anchorCount);
+    const anchorAmpY = new Float64Array(anchorCount);
+    for (let i = 0; i < anchorCount; i++) {
+      const u = pU[i];
+      const anchorColorT = Math.max(
+        0,
+        Math.min(1, Math.pow(Math.max(0, u), 0.9))
+      );
+      anchorBucket[i] = Math.min(
+        LUT_STEPS - 1,
+        Math.floor(anchorColorT * LUT_STEPS)
+      );
+      anchorAmpX[i] = (2 + u * 5.5) * turbulence;
+      anchorAmpY[i] = (1.5 + u * 3.5) * turbulence;
+    }
 
+    const pSpeedYScaled = new Float64Array(bodyCount);
+    for (let i = 0; i < bodyCount; i++) pSpeedYScaled[i] = pSpeedY[i] * speed;
+    const whiteVxScaled = new Float64Array(whiteCount);
+    const whiteVyScaled = new Float64Array(whiteCount);
+    for (let i = 0; i < whiteCount; i++) {
+      whiteVxScaled[i] = pWhiteVx[i] * speed;
+      whiteVyScaled[i] = pWhiteVy[i] * speed;
+    }
+
+    const particleBucket = new Int32Array(bodyCount);
+    const particleX = new Int32Array(bodyCount);
+    const particleY = new Int32Array(bodyCount);
+    const bucketCount = new Int32Array(LUT_STEPS);
+    const bucketOffset = new Int32Array(LUT_STEPS + 1);
+    const bucketCursor = new Int32Array(LUT_STEPS);
+    const bodyX = new Int32Array(bodyCount);
+    const bodyY = new Int32Array(bodyCount);
+    const bodySize = new Float32Array(bodyCount);
+
+    const whiteParticleBucket = new Int32Array(whiteCount);
+    const whiteParticleX = new Int32Array(whiteCount);
+    const whiteParticleY = new Int32Array(whiteCount);
     const whiteBucketCount = new Int32Array(WHITE_BUCKETS);
-    const whiteBucketX = Array.from(
-      { length: WHITE_BUCKETS },
-      () => new Int32Array(whiteCount)
-    );
-    const whiteBucketY = Array.from(
-      { length: WHITE_BUCKETS },
-      () => new Int32Array(whiteCount)
-    );
-    const whiteBucketS = Array.from(
-      { length: WHITE_BUCKETS },
-      () => new Float32Array(whiteCount)
-    );
+    const whiteBucketOffset = new Int32Array(WHITE_BUCKETS + 1);
+    const whiteBucketCursor = new Int32Array(WHITE_BUCKETS);
+    const fizzX = new Int32Array(whiteCount);
+    const fizzY = new Int32Array(whiteCount);
+    const fizzSize = new Float32Array(whiteCount);
 
     const handleResize = () => {
       width = canvas.width = window.innerWidth;
@@ -208,7 +222,12 @@ export default function FizzingParticles({
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
+    let onScreen = true;
+    let pageVisible = !document.hidden;
+
     const render = () => {
+      animId = 0;
+
       ctx.clearRect(0, 0, width, height);
 
       time += 0.016 * speed;
@@ -216,11 +235,15 @@ export default function FizzingParticles({
       bucketCount.fill(0);
       whiteBucketCount.fill(0);
 
+      const depth = Math.min(260, width * 0.18);
+      const baseX = width - Math.min(420, width * 0.30);
+      const top = height + 20;
+
       for (let i = 0; i < bodyCount; i++) {
         if (!reducedMotion) {
-          pY[i] += pSpeedY[i] * speed;
-          if (pY[i] < -20) pY[i] = height + 20;
-          else if (pY[i] > height + 20) pY[i] = -20;
+          pY[i] += pSpeedYScaled[i];
+          if (pY[i] < -20) pY[i] = top;
+          else if (pY[i] > top) pY[i] = -20;
 
           if (pIsStreamer[i] === 1) {
             pU[i] -= pSpeedU[i] * speed;
@@ -231,118 +254,184 @@ export default function FizzingParticles({
           }
         }
 
-        const cx = getCurveX(pY[i], width, height);
-        const spread = Math.max(40, width - cx);
+        const y = pY[i];
+        const progress = y < 0 ? 0 : y > height ? 1 : y / height;
+        const cx = baseX + Math.sin(progress * Math.PI) * depth;
+
+        let spread = width - cx;
+        if (spread < 40) spread = 40;
 
         const uVal = pU[i];
         const timePhase = time * pFreq[i] + pPhase[i];
-        const wobbleX =
-          Math.sin(timePhase) * (2 + uVal * 5.5) * turbulence;
-        const wobbleY =
-          Math.cos(timePhase * 0.8) * (1.5 + uVal * 3.5) * turbulence;
 
-        const posX = Math.floor(cx + uVal * spread + wobbleX);
-        const posY = Math.floor(pY[i] + wobbleY);
+        let wobbleX;
+        let wobbleY;
+        let lutIdx;
+        if (i < anchorCount) {
+          wobbleX = Math.sin(timePhase) * anchorAmpX[i];
+          wobbleY = Math.cos(timePhase * 0.8) * anchorAmpY[i];
+          lutIdx = anchorBucket[i];
+        } else {
+          wobbleX = Math.sin(timePhase) * (2 + uVal * 5.5) * turbulence;
+          wobbleY =
+            Math.cos(timePhase * 0.8) * (1.5 + uVal * 3.5) * turbulence;
+          const colorT = Math.max(
+            0,
+            Math.min(1, Math.pow(Math.max(0, uVal), 0.9))
+          );
+          lutIdx = Math.min(LUT_STEPS - 1, Math.floor(colorT * LUT_STEPS));
+        }
 
-        const colorT = Math.max(
-          0,
-          Math.min(1, Math.pow(Math.max(0, uVal), 0.90))
-        );
-        const lutIdx = Math.min(
-          LUT_STEPS - 1,
-          Math.floor(colorT * LUT_STEPS)
-        );
+        particleBucket[i] = lutIdx;
+        particleX[i] = Math.floor(cx + uVal * spread + wobbleX);
+        particleY[i] = Math.floor(y + wobbleY);
+        bucketCount[lutIdx]++;
+      }
 
-        const bIdx = bucketCount[lutIdx]++;
-        bucketX[lutIdx][bIdx] = posX;
-        bucketY[lutIdx][bIdx] = posY;
-        bucketS[lutIdx][bIdx] = pSize[i];
+      let run = 0;
+      for (let b = 0; b < LUT_STEPS; b++) {
+        bucketOffset[b] = run;
+        bucketCursor[b] = run;
+        run += bucketCount[b];
+      }
+      bucketOffset[LUT_STEPS] = run;
+
+      for (let i = 0; i < bodyCount; i++) {
+        const k = bucketCursor[particleBucket[i]]++;
+        bodyX[k] = particleX[i];
+        bodyY[k] = particleY[i];
+        bodySize[k] = pSize[i];
       }
 
       for (let i = 0; i < whiteCount; i++) {
         if (!reducedMotion) {
-          pWhiteDist[i] += pWhiteVx[i] * speed;
-          pWhiteY[i] += pWhiteVy[i] * speed;
+          pWhiteDist[i] += whiteVxScaled[i];
+          pWhiteY[i] += whiteVyScaled[i];
 
-          const distOutside = Math.abs(pWhiteDist[i]);
-          const curCx = getCurveX(pWhiteY[i], width, height);
-          const curX = curCx + pWhiteDist[i];
+          const dist = pWhiteDist[i];
+          const distOutside = dist < 0 ? -dist : dist;
+          const yCheck = pWhiteY[i];
+          const checkProgress =
+            yCheck < 0 ? 0 : yCheck > height ? 1 : yCheck / height;
+          const checkCx =
+            baseX + Math.sin(checkProgress * Math.PI) * depth;
 
           if (
             distOutside > pWhiteMax[i] ||
-            pWhiteY[i] < -20 ||
-            pWhiteY[i] > height + 20 ||
-            curX < 0
+            yCheck < -20 ||
+            yCheck > top ||
+            checkCx + dist < 0
           ) {
             pWhiteDist[i] = -Math.random() * 3;
             pWhiteY[i] = -15 + Math.random() * (height + 30);
             pWhiteMax[i] = 100 + Math.random() * 150;
             pWhiteVx[i] = -(0.18 + Math.random() * 0.35);
             pWhiteVy[i] = (Math.random() - 0.48) * 0.28;
+            whiteVxScaled[i] = pWhiteVx[i] * speed;
+            whiteVyScaled[i] = pWhiteVy[i] * speed;
           }
         }
 
-        const cx = getCurveX(pWhiteY[i], width, height);
+        const y = pWhiteY[i];
+        const progress = y < 0 ? 0 : y > height ? 1 : y / height;
+        const cx = baseX + Math.sin(progress * Math.PI) * depth;
         const wobbleX =
           Math.sin(time * 0.5 + pWhitePhase[i]) * 1.5 * turbulence;
         const wobbleY =
           Math.cos(time * 0.4 + pWhitePhase[i]) * 1.2 * turbulence;
 
-        const posX = Math.floor(cx + pWhiteDist[i] + wobbleX);
-        const posY = Math.floor(pWhiteY[i] + wobbleY);
+        const dist = pWhiteDist[i];
+        const posX = Math.floor(cx + dist + wobbleX);
+        const posY = Math.floor(y + wobbleY);
 
-        const distOut = Math.abs(pWhiteDist[i]);
+        const distOut = dist < 0 ? -dist : dist;
         const alphaFrac = Math.max(0, 1 - distOut / pWhiteMax[i]);
         const alphaBucket = Math.min(
           WHITE_BUCKETS - 1,
           Math.max(0, Math.floor(alphaFrac * WHITE_BUCKETS))
         );
 
-        const wbIdx = whiteBucketCount[alphaBucket]++;
-        whiteBucketX[alphaBucket][wbIdx] = posX;
-        whiteBucketY[alphaBucket][wbIdx] = posY;
-        whiteBucketS[alphaBucket][wbIdx] = pWhiteSize[i];
+        whiteParticleBucket[i] = alphaBucket;
+        whiteParticleX[i] = posX;
+        whiteParticleY[i] = posY;
+        whiteBucketCount[alphaBucket]++;
+      }
+
+      let fizzRun = 0;
+      for (let b = 0; b < WHITE_BUCKETS; b++) {
+        whiteBucketOffset[b] = fizzRun;
+        whiteBucketCursor[b] = fizzRun;
+        fizzRun += whiteBucketCount[b];
+      }
+      whiteBucketOffset[WHITE_BUCKETS] = fizzRun;
+
+      for (let i = 0; i < whiteCount; i++) {
+        const k = whiteBucketCursor[whiteParticleBucket[i]]++;
+        fizzX[k] = whiteParticleX[i];
+        fizzY[k] = whiteParticleY[i];
+        fizzSize[k] = pWhiteSize[i];
       }
 
       for (let b = 0; b < LUT_STEPS; b++) {
-        const count = bucketCount[b];
-        if (count === 0) continue;
-        const alpha = Math.max(0.72, 0.95 - (b / LUT_STEPS) * 0.18);
-        ctx.globalAlpha = alpha;
+        const start = bucketOffset[b];
+        const end = bucketOffset[b + 1];
+        if (start === end) continue;
+        ctx.globalAlpha = Math.max(0.72, 0.95 - (b / LUT_STEPS) * 0.18);
         ctx.fillStyle = colorLut[b];
-        const xs = bucketX[b];
-        const ys = bucketY[b];
-        const ss = bucketS[b];
-        for (let j = 0; j < count; j++) {
-          ctx.fillRect(xs[j], ys[j], ss[j], ss[j]);
+        for (let j = start; j < end; j++) {
+          ctx.fillRect(bodyX[j], bodyY[j], bodySize[j], bodySize[j]);
         }
       }
 
       ctx.fillStyle = "#ffffff";
       for (let wb = 0; wb < WHITE_BUCKETS; wb++) {
-        const count = whiteBucketCount[wb];
-        if (count === 0) continue;
-        const alpha = ((wb + 1) / WHITE_BUCKETS) * 0.92;
-        ctx.globalAlpha = alpha;
-        const xs = whiteBucketX[wb];
-        const ys = whiteBucketY[wb];
-        const ss = whiteBucketS[wb];
-        for (let j = 0; j < count; j++) {
-          ctx.fillRect(xs[j], ys[j], ss[j], ss[j]);
+        const start = whiteBucketOffset[wb];
+        const end = whiteBucketOffset[wb + 1];
+        if (start === end) continue;
+        ctx.globalAlpha = ((wb + 1) / WHITE_BUCKETS) * 0.92;
+        for (let j = start; j < end; j++) {
+          ctx.fillRect(fizzX[j], fizzY[j], fizzSize[j], fizzSize[j]);
         }
       }
 
       ctx.globalAlpha = 1;
 
-      if (!reducedMotion) {
+      if (!reducedMotion && onScreen && pageVisible) {
         animId = requestAnimationFrame(render);
       }
     };
 
+    const sync = () => {
+      const run = !reducedMotion && onScreen && pageVisible;
+      if (run && animId === 0) {
+        animId = requestAnimationFrame(render);
+      } else if (!run && animId !== 0) {
+        cancelAnimationFrame(animId);
+        animId = 0;
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        onScreen = entries[entries.length - 1].isIntersecting;
+        sync();
+      },
+      { threshold: 0 }
+    );
+    observer.observe(canvas);
+
+    const handleVisibility = () => {
+      pageVisible = !document.hidden;
+      sync();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
     render();
 
     return () => {
-      cancelAnimationFrame(animId);
+      if (animId !== 0) cancelAnimationFrame(animId);
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("resize", handleResize);
     };
   }, [colors, particleCount, speed, turbulence]);
