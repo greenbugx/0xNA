@@ -17,7 +17,7 @@ export default function MatteBackground() {
         className="absolute inset-0 opacity-90"
       />
 
-      <FizzingParticles />
+      <FizzingParticles speed={0.3} />
 
       <span
         style={{
