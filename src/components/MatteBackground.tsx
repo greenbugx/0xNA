@@ -26,8 +26,6 @@ export default function MatteBackground() {
         }}
         className="absolute inset-0 opacity-35"
       />
-
-      <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-white/[0.015] blur-[140px] rounded-full" />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   Home,
   Notebook,
   Mail,
+  Volume1,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -77,6 +78,8 @@ interface DockItemProps {
   label: string;
   href?: string;
   onClick?: () => void;
+  onHover?: () => void;
+  isMusicButton?: boolean;
   children: React.ReactNode;
 }
 
@@ -85,6 +88,8 @@ function DockItem({
   label,
   href,
   onClick,
+  onHover,
+  isMusicButton,
   children,
 }: DockItemProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -114,7 +119,10 @@ function DockItem({
     <motion.div
       ref={ref}
       style={{ width: size, height: size }}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        onHover?.();
+      }}
       onMouseLeave={() => setIsHovered(false)}
       className="group relative flex items-center justify-center rounded-full bg-gradient-to-b from-[#2a2b2f] via-[#222326] to-[#1c1c1f] hover:from-[#323338] hover:via-[#28292d] hover:to-[#212124] active:from-[#1d1d20] active:to-[#171719] border border-white/[0.09] hover:border-white/[0.16] text-[#9fa0a5] hover:text-[#f4f4f6] transition-colors duration-150 shrink-0 cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.65),0_1.5px_3px_rgba(0,0,0,0.5),inset_0_1px_0.5px_rgba(255,255,255,0.18)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.75),0_2px_4px_rgba(0,0,0,0.6),inset_0_1px_0.5px_rgba(255,255,255,0.25)] select-none"
     >
@@ -161,6 +169,7 @@ function DockItem({
       type="button"
       onClick={onClick}
       aria-label={label}
+      data-music-btn={isMusicButton ? "true" : undefined}
       className="shrink-0 focus:outline-none"
     >
       {content}
@@ -171,13 +180,19 @@ function DockItem({
 export default function Dock() {
   const mouseX = useMotionValue(Infinity);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const dockAudioRef = useRef<HTMLAudioElement | null>(null);
+  const menuAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const dockBufferRef = useRef<AudioBuffer | null>(null);
+  const menuBufferRef = useRef<AudioBuffer | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const [volumeLevel, setVolumeLevel] = useState<0 | 1 | 2>(0);
   const [playlist, setPlaylist] = useState<string[]>(() =>
     generateShuffledPlaylist(null)
   );
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const isPlayingRef = useRef(false);
+  const volumeLevelRef = useRef<0 | 1 | 2>(0);
   const playlistRef = useRef(playlist);
   const currentIndexRef = useRef(0);
 
@@ -190,19 +205,145 @@ export default function Dock() {
   }, [currentIndex]);
 
   useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
+    volumeLevelRef.current = volumeLevel;
+  }, [volumeLevel]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const initAudio = async () => {
+      try {
+        const AudioCtx = window.AudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        audioCtxRef.current = ctx;
+        const gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gainNodeRef.current = gain;
+
+        const [resDock, resMenu] = await Promise.all([
+          fetch("/music/click2.mp3"),
+          fetch("/music/click.mp3"),
+        ]);
+        const [dockArr, menuArr] = await Promise.all([
+          resDock.arrayBuffer(),
+          resMenu.arrayBuffer(),
+        ]);
+        const [dockBuf, menuBuf] = await Promise.all([
+          ctx.decodeAudioData(dockArr),
+          ctx.decodeAudioData(menuArr),
+        ]);
+        if (isMounted) {
+          dockBufferRef.current = dockBuf;
+          menuBufferRef.current = menuBuf;
+        }
+      } catch {}
+    };
+    initAudio();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (audio && playlistRef.current[0]) {
-      audio.volume = 0.45;
+      audio.volume = 0.5;
       audio.src = playlistRef.current[0];
     }
   }, []);
 
+  const playDockSound = useCallback((overrideLevel?: number) => {
+    const level = overrideLevel ?? volumeLevelRef.current;
+    if (level === 0) return;
+
+    const ctx = audioCtxRef.current;
+    const buffer = dockBufferRef.current;
+    const gainNode = gainNodeRef.current;
+
+    if (ctx && buffer && gainNode) {
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      gainNode.gain.value = level === 2 ? 1 : 0.5;
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(gainNode);
+      source.start(0);
+      return;
+    }
+
+    const baseAudio = dockAudioRef.current;
+    if (!baseAudio) return;
+
+    try {
+      const sound = baseAudio.cloneNode() as HTMLAudioElement;
+      sound.volume = level === 2 ? 1 : 0.5;
+      sound.play().catch(() => {});
+    } catch {
+      baseAudio.currentTime = 0;
+      baseAudio.volume = level === 2 ? 1 : 0.5;
+      baseAudio.play().catch(() => {});
+    }
+  }, []);
+
+  const playMenuSound = useCallback((overrideLevel?: number) => {
+    const level = overrideLevel ?? volumeLevelRef.current;
+    if (level === 0) return;
+
+    const ctx = audioCtxRef.current;
+    const buffer = menuBufferRef.current;
+    const gainNode = gainNodeRef.current;
+
+    if (ctx && buffer && gainNode) {
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      gainNode.gain.value = level === 2 ? 1 : 0.5;
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(gainNode);
+      source.start(0);
+      return;
+    }
+
+    const baseAudio = menuAudioRef.current;
+    if (!baseAudio) return;
+
+    try {
+      const sound = baseAudio.cloneNode() as HTMLAudioElement;
+      sound.volume = level === 2 ? 1 : 0.5;
+      sound.play().catch(() => {});
+    } catch {
+      baseAudio.currentTime = 0;
+      baseAudio.volume = level === 2 ? 1 : 0.5;
+      baseAudio.play().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      if (volumeLevelRef.current === 0) return;
+      const target = (e.target as HTMLElement | null)?.closest(
+        "button, a, [role='button'], .cursor-pointer"
+      );
+      if (target) {
+        if (target.getAttribute("data-music-btn") === "true") return;
+        if (target.closest("nav")) {
+          playDockSound();
+        } else {
+          playMenuSound();
+        }
+      }
+    };
+
+    window.addEventListener("click", handleGlobalClick, { capture: true });
+    return () => {
+      window.removeEventListener("click", handleGlobalClick, { capture: true });
+    };
+  }, [playDockSound, playMenuSound]);
+
   const handleEnded = useCallback(() => {
-    if (!isPlayingRef.current) return;
+    if (volumeLevelRef.current === 0) return;
 
     let nextIdx = currentIndexRef.current + 1;
     let tracks = playlistRef.current;
@@ -221,9 +362,8 @@ export default function Dock() {
     const audio = audioRef.current;
     if (audio && tracks[nextIdx]) {
       audio.src = tracks[nextIdx];
+      audio.volume = volumeLevelRef.current === 2 ? 1 : 0.5;
       audio.play().catch(() => {});
-      setIsPlaying(true);
-      isPlayingRef.current = true;
     }
   }, []);
 
@@ -231,32 +371,51 @@ export default function Dock() {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-      isPlayingRef.current = false;
-    } else {
+    if (volumeLevel === 0) {
+      if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+      playDockSound(1);
       if (!audio.src && playlistRef.current.length > 0) {
         audio.src = playlistRef.current[currentIndexRef.current];
       }
-      audio
-        .play()
-        .then(() => {
-          setIsPlaying(true);
-          isPlayingRef.current = true;
-        })
-        .catch(() => {
-          setIsPlaying(false);
-          isPlayingRef.current = false;
-        });
+      audio.volume = 0.5;
+      setVolumeLevel(1);
+      volumeLevelRef.current = 1;
+      audio.play().catch(() => {
+        setVolumeLevel(0);
+        volumeLevelRef.current = 0;
+      });
+    } else if (volumeLevel === 1) {
+      playDockSound(2);
+      audio.volume = 1;
+      setVolumeLevel(2);
+      volumeLevelRef.current = 2;
+    } else {
+      playDockSound(1);
+      audio.pause();
+      setVolumeLevel(0);
+      volumeLevelRef.current = 0;
     }
-  }, [isPlaying]);
+  }, [volumeLevel, playDockSound]);
 
   return (
     <>
       <audio
         ref={audioRef}
         onEnded={handleEnded}
+        preload="auto"
+        className="hidden"
+      />
+      <audio
+        ref={dockAudioRef}
+        src="/music/click2.mp3"
+        preload="auto"
+        className="hidden"
+      />
+      <audio
+        ref={menuAudioRef}
+        src="/music/click.mp3"
         preload="auto"
         className="hidden"
       />
@@ -270,28 +429,28 @@ export default function Dock() {
           onMouseLeave={() => mouseX.set(Infinity)}
           className="flex items-center h-[56px] gap-1 px-2.5 rounded-full bg-[#111113]/90 border border-white/[0.07] backdrop-blur-2xl shadow-[0_14px_45px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.06)] overflow-visible"
         >
-          <DockItem mouseX={mouseX} label="Home" href="#">
+          <DockItem mouseX={mouseX} label="Home" href="/" onHover={playDockSound}>
             <Home className="w-full h-full stroke-[1.8]" />
           </DockItem>
-          <DockItem mouseX={mouseX} label="Notebook" href="#notes">
+          <DockItem mouseX={mouseX} label="Notebook" href="#notes" onHover={playDockSound}>
             <Notebook className="w-full h-full stroke-[1.8]" />
           </DockItem>
 
           <div className="h-5 w-[1px] bg-white/[0.08] shadow-[1px_0_0_rgba(0,0,0,0.5)] mx-1 self-center shrink-0" />
 
-          <DockItem mouseX={mouseX} label="GitHub" href="https://github.com/greenbugx">
+          <DockItem mouseX={mouseX} label="GitHub" href="https://github.com/greenbugx" onHover={playDockSound}>
             <GithubIcon className="w-full h-full" />
           </DockItem>
-          <DockItem mouseX={mouseX} label="LinkedIn" href="https://linkedin.com/in/jesus-chetia">
+          <DockItem mouseX={mouseX} label="LinkedIn" href="https://linkedin.com/in/jesus-chetia" onHover={playDockSound}>
             <LinkedinIcon className="w-full h-full" />
           </DockItem>
-          <DockItem mouseX={mouseX} label="X" href="https://x.com/greenbugx">
+          <DockItem mouseX={mouseX} label="X" href="https://x.com/greenbugx" onHover={playDockSound}>
             <XIcon className="w-full h-full" />
           </DockItem>
-          <DockItem mouseX={mouseX} label="DEV" href="https://dev.to/0xna">
+          <DockItem mouseX={mouseX} label="DEV" href="https://dev.to/0xna" onHover={playDockSound}>
             <DevIcon className="w-full h-full" />
           </DockItem>
-          <DockItem mouseX={mouseX} label="Contact" href="mailto:greenbugx@proton.me">
+          <DockItem mouseX={mouseX} label="Contact" href="mailto:greenbugx@proton.me" onHover={playDockSound}>
             <Mail className="w-full h-full stroke-[1.8]" />
           </DockItem>
 
@@ -299,10 +458,20 @@ export default function Dock() {
 
           <DockItem
             mouseX={mouseX}
-            label={isPlaying ? "Pause Music" : "Play Music"}
+            label={
+              volumeLevel === 1
+                ? "Volume 50%"
+                : volumeLevel === 2
+                ? "Volume 100%"
+                : "Play Music"
+            }
             onClick={toggleAudio}
+            onHover={playDockSound}
+            isMusicButton
           >
-            {isPlaying ? (
+            {volumeLevel === 1 ? (
+              <Volume1 className="w-full h-full stroke-[1.8]" />
+            ) : volumeLevel === 2 ? (
               <Volume2 className="w-full h-full stroke-[1.8]" />
             ) : (
               <VolumeX className="w-full h-full stroke-[1.8]" />

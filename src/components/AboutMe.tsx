@@ -58,13 +58,6 @@ export default function AboutMe() {
         <TechBadge name="FL Studio" icon="/images/FLStudio.webp" /> and try to make something of{" "}
         <span className="inline-block whitespace-nowrap">my own.</span>
       </p>
-
-      <div className="pt-10 sm:pt-20">
-        <p className="text-xl sm:text-4xl font-bold text-zinc-100 tracking-tight">
-          More things are getting added{" "}<br className="hidden sm:inline" />
-          <span className="pl-24 sm:pl-48 text-zinc-500 font-normal">Soon</span>
-        </p>
-      </div>
     </div>
   );
 }
