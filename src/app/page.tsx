@@ -3,6 +3,8 @@ import AboutMe from "@/components/AboutMe";
 import Timeline from "@/components/Timeline";
 import TechStack from "@/components/TechStack";
 import Projects from "@/components/Projects";
+import Hackathons from "@/components/Hackathons";
+import GithubHeatmap from "@/components/GithubHeatmap";
 
 export default function Home() {
   return (
@@ -14,9 +16,11 @@ export default function Home() {
           <Timeline />
           <TechStack />
           <Projects />
+          <Hackathons />
+          <GithubHeatmap />
           <div className="w-full pt-14 sm:pt-16 pb-4 text-center flex flex-col items-center justify-center gap-1 select-none">
             <p className="text-xs sm:text-sm text-zinc-500">
-              Some more things are going to be added
+              Two last things are going to be added
             </p>
             <p className="text-xs sm:text-sm text-zinc-400 font-medium">
               Soon

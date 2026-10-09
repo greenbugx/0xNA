@@ -105,6 +105,8 @@ const PROJECTS: ProjectItem[] = [
 ];
 
 export default function Projects() {
+  const [hoveredProject, setHoveredProject] = useState<string | null>(null);
+
   return (
     <section className="w-full px-2 pt-10 sm:pt-14 select-none">
       <div className="flex items-center justify-between gap-4 mb-5 sm:mb-6">
@@ -125,11 +127,23 @@ export default function Projects() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-        {PROJECTS.map((project) => (
-          <div
-            key={project.title}
-            className="group rounded-xl border border-white/[0.08] hover:border-white/[0.14] bg-[#121214] overflow-hidden flex flex-col transition-all duration-200 shadow-[0_3px_14px_rgba(0,0,0,0.35)]"
-          >
+        {PROJECTS.map((project) => {
+          const isHovered = hoveredProject === project.title;
+          const isOtherHovered = hoveredProject !== null && !isHovered;
+
+          return (
+            <div
+              key={project.title}
+              onMouseEnter={() => setHoveredProject(project.title)}
+              onMouseLeave={() => setHoveredProject(null)}
+              className={`group rounded-xl border bg-[#121214] overflow-hidden flex flex-col transition-all duration-300 shadow-[0_3px_14px_rgba(0,0,0,0.35)] cursor-pointer ${
+                isOtherHovered
+                  ? "opacity-60 border-white/[0.06]"
+                  : isHovered
+                  ? "opacity-100 border-white/[0.18] shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
+                  : "opacity-100 border-white/[0.08]"
+              }`}
+            >
             <div className="relative w-full aspect-[16/10] overflow-hidden bg-[#0c0c0c]">
               <Image
                 src={project.image}
@@ -206,7 +220,8 @@ export default function Projects() {
               </div>
             </div>
           </div>
-        ))}
+        );
+      })}
       </div>
     </section>
   );
