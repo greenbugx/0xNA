@@ -5,6 +5,7 @@ import "./globals.css";
 import Dock from "@/components/Dock";
 import MatteBackground from "@/components/MatteBackground";
 import LoadingScreen from "@/components/LoadingScreen";
+import SmoothScroll from "@/components/SmoothScroll";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,13 +51,15 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} ${googleSans.variable} ${googleSansItalic.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#09090b] text-[#ededed]">
-        <MatteBackground />
-        <LoadingScreen>
-          <div className="relative z-10 flex flex-col flex-1">
-            {children}
-          </div>
-          <Dock />
-        </LoadingScreen>
+        <SmoothScroll>
+          <MatteBackground />
+          <LoadingScreen>
+            <div className="relative z-10 flex flex-col flex-1">
+              {children}
+            </div>
+            <Dock />
+          </LoadingScreen>
+        </SmoothScroll>
       </body>
     </html>
   );
