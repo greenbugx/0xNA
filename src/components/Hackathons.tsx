@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import { getVolumeLevel } from "@/lib/volume";
 
 interface HackItem {
   id: string;
@@ -48,18 +49,22 @@ function Keycap({ label, keyCode }: { label: string; keyCode?: string }) {
 
   useEffect(() => {
     audioRef.current = new Audio("/music/click.mp3");
-    audioRef.current.volume = 0.5;
   }, []);
 
   const playClick = () => {
+    const level = getVolumeLevel();
+    if (level === 0) return;
+
     const audio = audioRef.current;
     if (!audio) return;
+    const gain = level === 2 ? 1 : 0.5;
     try {
       const sound = audio.cloneNode() as HTMLAudioElement;
-      sound.volume = 0.5;
+      sound.volume = gain;
       sound.play().catch(() => {});
     } catch {
       audio.currentTime = 0;
+      audio.volume = gain;
       audio.play().catch(() => {});
     }
   };
@@ -67,12 +72,12 @@ function Keycap({ label, keyCode }: { label: string; keyCode?: string }) {
   useEffect(() => {
     if (!keyCode) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        (keyCode === "Control" && (e.key === "Control" || e.ctrlKey)) ||
-        (keyCode === "c" && e.key.toLowerCase() === "c") ||
-        (keyCode === "v" && e.key.toLowerCase() === "v")
-      ) {
-        if (!e.repeat) {
+      const isControl =
+        keyCode === "Control" ? e.key === "Control" || e.ctrlKey : false;
+      const isLetter = keyCode !== "Control" && e.key.toLowerCase() === keyCode;
+
+      if (isControl || isLetter) {
+        if (!e.repeat && (isLetter || e.key === "Control")) {
           playClick();
         }
         setIsPressed(true);

@@ -17,6 +17,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { publishVolumeLevel } from "@/lib/volume";
 
 const TRACKS = [
   "/music/music1.mp3",
@@ -206,6 +207,7 @@ export default function Dock() {
 
   useEffect(() => {
     volumeLevelRef.current = volumeLevel;
+    publishVolumeLevel(volumeLevel);
   }, [volumeLevel]);
 
   useEffect(() => {
