@@ -127,7 +127,7 @@ export default function Projects() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-        {PROJECTS.map((project) => {
+        {PROJECTS.map((project, index) => {
           const isHovered = hoveredProject === project.title;
           const isOtherHovered = hoveredProject !== null && !isHovered;
 
@@ -149,6 +149,7 @@ export default function Projects() {
                 src={project.image}
                 alt={project.title}
                 fill
+                priority={index === 0}
                 sizes="(max-width: 640px) 100vw, 50vw"
                 className="object-cover object-center group-hover:scale-[1.02] transition-transform duration-300"
               />
