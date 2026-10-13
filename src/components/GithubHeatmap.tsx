@@ -28,6 +28,9 @@ const LEVEL_ORDER = [
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const VISIBLE_WEEKDAYS = [1, 3, 5];
+const PAD = 10;
+const CELL_GAP = 3;
+const COLUMN_GAP = 8;
 
 type TooltipState = {
   day: ContributionDay;
@@ -75,6 +78,51 @@ function monthLabels(calendar: ContributionCalendar) {
   });
 }
 
+type GridProps = {
+  weeks: ContributionCalendar["weeks"];
+  show: (day: ContributionDay, cell: HTMLElement) => void;
+  hide: () => void;
+};
+
+const ContributionGrid = React.memo(function ContributionGrid({
+  weeks,
+  show,
+  hide,
+}: GridProps) {
+  return (
+    <div
+      className="min-w-0 grid"
+      style={{
+        gap: CELL_GAP,
+        gridTemplateColumns: `repeat(${weeks.length}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(7, var(--cell))`,
+      }}
+    >
+      {weeks.map((week, weekIndex) =>
+        week.contributionDays.map((day) => (
+          <button
+            key={day.date}
+            type="button"
+            data-day
+            aria-label={dayLabel(day)}
+            style={{
+              backgroundColor: squareColor(day),
+              gridColumn: weekIndex + 1,
+              gridRow: day.weekday + 1,
+            }}
+            className="aspect-square w-full h-full rounded-[2.5px] cursor-pointer outline-none transition-transform duration-150 hover:scale-[1.35] focus-visible:scale-[1.35] focus-visible:ring-1 focus-visible:ring-white/60"
+            onMouseEnter={(event) => show(day, event.currentTarget)}
+            onMouseLeave={hide}
+            onFocus={(event) => show(day, event.currentTarget)}
+            onBlur={hide}
+            onTouchStart={(event) => show(day, event.currentTarget)}
+          />
+        )),
+      )}
+    </div>
+  );
+});
+
 export default function GithubHeatmap({
   calendar,
 }: {
@@ -83,7 +131,6 @@ export default function GithubHeatmap({
   const cardRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>(null);
-  const [tooltipSize, setTooltipSize] = useState({ width: 0, height: 0 });
 
   const show = useCallback(
     (day: ContributionDay, cell: HTMLElement) => {
@@ -108,9 +155,22 @@ export default function GithubHeatmap({
 
   useLayoutEffect(() => {
     const node = tooltipRef.current;
-    if (!node) return;
-    setTooltipSize({ width: node.offsetWidth, height: node.offsetHeight });
-  }, [tooltip?.day.date]);
+    if (!node || !tooltip) return;
+
+    const width = node.offsetWidth;
+    const height = node.offsetHeight;
+    const left = Math.min(
+      Math.max(tooltip.centerX, PAD),
+      Math.max(tooltip.containerWidth - width - PAD, PAD),
+    );
+    const top = Math.min(
+      Math.max(tooltip.centerY - height / 2, PAD),
+      Math.max(tooltip.containerHeight - height - PAD, PAD),
+    );
+
+    node.style.left = `${left}px`;
+    node.style.top = `${top}px`;
+  }, [tooltip]);
 
   useEffect(() => {
     if (!tooltip) return;
@@ -146,17 +206,18 @@ export default function GithubHeatmap({
 
   const weekCount = calendar?.weeks.length ?? 0;
   const [cell, setCell] = useState(0);
-  const gridRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    const grid = gridRef.current;
-    if (!grid || weekCount === 0) return;
+    const frame = frameRef.current;
+    const label = labelRef.current;
+    if (!frame || !label || weekCount === 0) return;
 
     const measure = () => {
-      const gap = parseFloat(getComputedStyle(grid).columnGap) || 0;
-      const width = grid.clientWidth;
-      if (!width) return;
-      const fit = (width - gap * (weekCount - 1)) / weekCount;
+      const width = frame.clientWidth - label.offsetWidth - COLUMN_GAP;
+      if (width <= 0) return;
+      const fit = (width - CELL_GAP * (weekCount - 1)) / weekCount;
       const floor = window.matchMedia("(min-width: 768px)").matches ? 0 : 10;
       const next = fit >= floor ? fit : floor;
       setCell((prev) => (Math.abs(prev - next) > 0.25 ? next : prev));
@@ -164,29 +225,9 @@ export default function GithubHeatmap({
 
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(grid);
+    observer.observe(frame);
     return () => observer.disconnect();
   }, [weekCount]);
-
-  const halfWidth = tooltipSize.width / 2;
-  const tooltipLeft = tooltip
-    ? Math.min(
-        Math.max(tooltip.centerX, halfWidth + 10),
-        Math.max(tooltip.containerWidth - halfWidth - 10, halfWidth + 10),
-      )
-    : 0;
-  const tooltipTop = tooltip
-    ? Math.min(
-        Math.max(
-          tooltip.centerY - tooltipSize.height / 2,
-          tooltipSize.height + 10,
-        ),
-        Math.max(
-          tooltip.containerHeight - tooltipSize.height - 10,
-          tooltipSize.height + 10,
-        ),
-      )
-    : 0;
 
   return (
     <section className="w-full px-2 pt-10 sm:pt-14 select-none">
@@ -226,9 +267,15 @@ export default function GithubHeatmap({
           <div className="p-4 sm:p-5 flex flex-col gap-2">
             <div className="w-full overflow-x-auto" onScroll={hide}>
               <div
-                className="w-full grid grid-cols-[auto_1fr] gap-x-2 gap-y-2"
+                ref={frameRef}
+                className="w-full grid grid-cols-[auto_1fr] gap-y-2"
                 style={
-                  cell ? ({ ["--cell" as string]: `${cell}px` } as React.CSSProperties) : undefined
+                  cell
+                    ? ({
+                        ["--cell" as string]: `${cell}px`,
+                        columnGap: COLUMN_GAP,
+                      } as React.CSSProperties)
+                    : { columnGap: COLUMN_GAP }
                 }
               >
                 <div className="w-6 sm:w-7" aria-hidden="true" />
@@ -245,8 +292,12 @@ export default function GithubHeatmap({
                 </div>
 
                 <div
-                  className="w-6 sm:w-7 grid gap-[3px]"
-                  style={{ gridTemplateRows: "repeat(7, var(--cell))" }}
+                  ref={labelRef}
+                  className="w-6 sm:w-7 grid"
+                  style={{
+                    gap: CELL_GAP,
+                    gridTemplateRows: "repeat(7, var(--cell))",
+                  }}
                 >
                   {WEEKDAY_LABELS.map((label, weekday) =>
                     VISIBLE_WEEKDAYS.includes(weekday) ? (
@@ -261,42 +312,11 @@ export default function GithubHeatmap({
                   )}
                 </div>
 
-                <div
-                  ref={gridRef}
-                  className="min-w-0 grid gap-[3px]"
-                  style={{
-                    gridTemplateColumns: `repeat(${weekCount}, minmax(0, 1fr))`,
-                    gridTemplateRows: cell
-                      ? `repeat(7, ${cell}px)`
-                      : undefined,
-                  }}
-                >
-                  {calendar.weeks.map((week, weekIndex) =>
-                    week.contributionDays.map((day) => (
-                      <button
-                        key={day.date}
-                        type="button"
-                        data-day
-                        aria-label={dayLabel(day)}
-                        style={{
-                          backgroundColor: squareColor(day),
-                          gridColumn: weekIndex + 1,
-                          gridRow: day.weekday + 1,
-                        }}
-                        className="aspect-square w-full h-full rounded-[2.5px] cursor-pointer outline-none transition-transform duration-150 hover:scale-[1.35] focus-visible:scale-[1.35] focus-visible:ring-1 focus-visible:ring-white/60"
-                        onMouseEnter={(event) =>
-                          show(day, event.currentTarget)
-                        }
-                        onMouseLeave={hide}
-                        onFocus={(event) => show(day, event.currentTarget)}
-                        onBlur={hide}
-                        onTouchStart={(event) =>
-                          show(day, event.currentTarget)
-                        }
-                      />
-                    )),
-                  )}
-                </div>
+                <ContributionGrid
+                  weeks={calendar.weeks}
+                  show={show}
+                  hide={hide}
+                />
               </div>
             </div>
 
@@ -326,8 +346,7 @@ export default function GithubHeatmap({
           <div
             ref={tooltipRef}
             role="tooltip"
-            className="absolute z-20 pointer-events-none whitespace-nowrap rounded-lg border border-white/10 bg-[#1c1d21] px-2 py-1 text-[11px] sm:text-xs font-medium text-zinc-100 shadow-[0_6px_20px_rgba(0,0,0,0.6)]"
-            style={{ left: tooltipLeft, top: tooltipTop }}
+            className="absolute left-0 top-0 z-20 pointer-events-none whitespace-nowrap rounded-lg border border-white/10 bg-[#1c1d21] px-2 py-1 text-[11px] sm:text-xs font-medium text-zinc-100 shadow-[0_6px_20px_rgba(0,0,0,0.6)]"
           >
             {dayLabel(tooltip.day)}
           </div>

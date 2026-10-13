@@ -27,7 +27,7 @@ export default function AboutMe() {
   return (
     <div className="w-full px-2 text-[13px] sm:text-sm text-zinc-400 leading-[1.65] sm:leading-[1.7] space-y-3.5 sm:space-y-4">
       <p>
-        I’m 18, a full-stack developer who likes figuring out how things work and then probably rebuilding them for no good reason. I spend most of my time with{" "}
+        I’m an 18-year-old full-stack developer building with{" "}
         <span className="inline-block whitespace-nowrap">
           <TechBadge name="TypeScript" icon="/images/ts-logo-round-128.svg" />,
         </span>{" "}
@@ -36,27 +36,19 @@ export default function AboutMe() {
         </span>{" "}
         and{" "}
         <span className="inline-block whitespace-nowrap">
-          <TechBadge name="Next.js" icon="/images/Next.js.svg" invert />,
+          <TechBadge name="Next.js" icon="/images/Next.js.svg" invert />.
         </span>{" "}
-        jumping between frontend, backend, and{" "}
-        <span className="inline-block whitespace-nowrap">everything in between.</span>
-      </p>
-
-      <p>
-        When web development starts feeling a little too comfortable, I disappear into{" "}
-        <TechBadge name="Rust" icon="/images/Rust.svg" invert /> and{" "}
-        <TechBadge name="C++" icon="/images/Cpp.svg" /> for a while. Low-level programming has a weird way of turning a simple idea into a personal challenge.
-      </p>
-
-      <p>
-        I like making things from scratch, especially the kind of projects that start with a random thought and end with a working product. Somewhere between shipping, breaking, and fixing things, I’m usually learning something new.
-      </p>
-
-      <p>
-        When I’m not coding, there’s probably{" "}
-        <TechBadge name="Spotify" icon="/images/Spotify.svg" /> running in the background, music playing a little too loud, or another project that I absolutely did not need to start. And when I finally get bored of it too, I open{" "}
-        <TechBadge name="FL Studio" icon="/images/FLStudio.webp" /> and try to make something of{" "}
-        <span className="inline-block whitespace-nowrap">my own.</span>
+        When I’m not shipping web apps, I’m probably experimenting with{" "}
+        <span className="inline-block whitespace-nowrap">
+          <TechBadge name="Rust" icon="/images/Rust.svg" invert />,
+        </span>{" "}
+        <span className="inline-block whitespace-nowrap">
+          <TechBadge name="C++" icon="/images/Cpp.svg" />,
+        </span>{" "}
+        or making music in{" "}
+        <span className="inline-block whitespace-nowrap">
+          <TechBadge name="FL Studio" icon="/images/FLStudio.webp" />.
+        </span>
       </p>
     </div>
   );

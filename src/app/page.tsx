@@ -13,7 +13,8 @@ export default async function Home() {
 
   try {
     calendar = await getGithubContributionCalendar();
-  } catch {
+  } catch (error) {
+    console.error("GitHub contribution calendar failed:", error);
     calendar = null;
   }
 
@@ -23,9 +24,9 @@ export default async function Home() {
         <ProfileHeader />
         <main className="flex flex-col gap-2">
           <AboutMe />
-          <Timeline />
-          <TechStack />
           <Projects />
+          <TechStack />
+          <Timeline />
           <Hackathons />
           <GithubHeatmap calendar={calendar} />
           <div className="w-full pt-14 sm:pt-16 pb-4 text-center flex flex-col items-center justify-center gap-1 select-none">

@@ -98,47 +98,38 @@ export default function TechStack() {
 
       <div className="w-full text-[13px] sm:text-sm text-zinc-400 leading-[1.7] sm:leading-[1.75] space-y-3.5 sm:space-y-4">
         <p>
-          My usual setup is basically{" "}
+          I build with{" "}
           <span className="inline-block whitespace-nowrap">
-            <TechBadge name="JavaScript" icon="/images/js.svg" />
+            <TechBadge name="TypeScript" icon="/images/ts-logo-round-128.svg" />,
           </span>{" "}
-          arguing with{" "}
           <span className="inline-block whitespace-nowrap">
-            <TechBadge name="TypeScript" icon="/images/ts-logo-round-128.svg" />
+            <TechBadge name="JavaScript" icon="/images/js.svg" />,
           </span>{" "}
-          while{" "}
+          and{" "}
           <span className="inline-block whitespace-nowrap">
-            <TechBadge name="Tailwind CSS" icon="/images/Tailwind CSS.svg" />
+            <TechBadge name="Tailwind CSS" icon="/images/Tailwind CSS.svg" />.
           </span>{" "}
-          makes everything look pretty enough that nobody notices the bugs.
-        </p>
-
-        <p>
-          For databases, I trust{" "}
           <span className="inline-block whitespace-nowrap">
             <TechBadge name="PostgreSQL" icon="/images/postgresSQL.svg" />
           </span>{" "}
-          with my life and{" "}
+          for production,{" "}
           <span className="inline-block whitespace-nowrap">
             <TechBadge name="SQLite" icon="/images/SQLite.svg" />
           </span>{" "}
-          with my side projects. I use{" "}
+          for lightweight projects.{" "}
           <span className="inline-block whitespace-nowrap">
             <TechBadge name="Git" icon="/images/git.svg" />
           </span>{" "}
-          when I remember to commit,{" "}
+          for version control,{" "}
           <span className="inline-block whitespace-nowrap">
             <TechBadge name="VS Code" icon="/images/vscode.svg" />
           </span>{" "}
-          when I pretend I know what I&apos;m doing, and I use{" "}
+          for the workflow, and{" "}
           <span className="inline-block whitespace-nowrap">
             <TechBadge name="Arch Linux" icon="/images/arch.svg" />
           </span>{" "}
-          just to be able to say{" "}
-          <span className="inline-block whitespace-nowrap font-semibold text-[14px] sm:text-[15px] text-zinc-200">
-            &quot;<span className="italic">I use Arch btw</span>{" "}
-            <span className="not-italic">: )</span>&quot;
-          </span>
+          because obviously.{" "}
+          <span className="font-bold italic text-zinc-200">I use Arch btw :)</span>
         </p>
       </div>
 
