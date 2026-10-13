@@ -7,6 +7,11 @@ const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const ENDPOINT = "/api/visitors";
 
+export type VisitorStats = {
+  visitorNumber: number | null;
+  totalVisitors: number | null;
+};
+
 function isValidId(value: unknown): value is string {
   return typeof value === "string" && UUID_V4.test(value);
 }
@@ -47,9 +52,9 @@ function getOrCreateVisitorId(): string | null {
   }
 }
 
-let pending: Promise<number | null> | null = null;
+let pending: Promise<VisitorStats | null> | null = null;
 
-function loadVisitorNumber(): Promise<number | null> {
+function loadVisitorStats(): Promise<VisitorStats | null> {
   if (!pending) {
     const request = (async () => {
       const visitorId = getOrCreateVisitorId();
@@ -65,10 +70,18 @@ function loadVisitorNumber(): Promise<number | null> {
 
         if (!response.ok) return null;
 
-        const data = (await response.json()) as { visitorNumber?: unknown };
-        return typeof data.visitorNumber === "number"
-          ? data.visitorNumber
-          : null;
+        const data = (await response.json()) as {
+          visitorNumber?: unknown;
+          totalVisitors?: unknown;
+        };
+
+        if (typeof data.visitorNumber !== "number") return null;
+
+        return {
+          visitorNumber: data.visitorNumber,
+          totalVisitors:
+            typeof data.totalVisitors === "number" ? data.totalVisitors : null,
+        };
       } catch {
         return null;
       }
@@ -83,14 +96,17 @@ function loadVisitorNumber(): Promise<number | null> {
   return pending;
 }
 
-export function useVisitorNumber(): number | null {
-  const [visitorNumber, setVisitorNumber] = useState<number | null>(null);
+export function useVisitorStats(): VisitorStats {
+  const [stats, setStats] = useState<VisitorStats>({
+    visitorNumber: null,
+    totalVisitors: null,
+  });
 
   useEffect(() => {
     let active = true;
 
-    void loadVisitorNumber().then((value) => {
-      if (active && value !== null) setVisitorNumber(value);
+    void loadVisitorStats().then((value) => {
+      if (active && value !== null) setStats(value);
     });
 
     return () => {
@@ -98,5 +114,5 @@ export function useVisitorNumber(): number | null {
     };
   }, []);
 
-  return visitorNumber;
+  return stats;
 }
