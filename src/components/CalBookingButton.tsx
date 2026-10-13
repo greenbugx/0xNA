@@ -53,7 +53,7 @@ export default function CalBookingButton({
   }, [isOpen]);
 
   const defaultClassName =
-    "group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-b from-[#2a2b2f] via-[#222326] to-[#1c1c1f] hover:from-[#323338] hover:via-[#28292d] hover:to-[#212124] border border-white/[0.09] hover:border-white/[0.16] text-xs font-medium text-zinc-300 hover:text-white transition-colors shadow-[0_1.5px_4px_rgba(0,0,0,0.5),inset_0_1px_0.5px_rgba(255,255,255,0.18)] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-white/20";
+    "group inline-flex items-center justify-center gap-2 px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-lg sm:rounded-xl bg-gradient-to-b from-[#2a2b2f] via-[#222326] to-[#1c1c1f] hover:from-[#323338] hover:via-[#28292d] hover:to-[#212124] border border-white/[0.09] hover:border-white/[0.16] text-xs sm:text-sm font-medium text-zinc-200 hover:text-white transition-colors shadow-[0_2px_6px_rgba(0,0,0,0.5),inset_0_1px_0.5px_rgba(255,255,255,0.18)] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-white/20";
 
   const buttonElement = (
     <button
@@ -67,7 +67,7 @@ export default function CalBookingButton({
     >
       {children || (
         <>
-          <Calendar className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-200 transition-colors shrink-0" />
+          <Calendar className="w-4 h-4 text-zinc-400 group-hover:text-zinc-200 transition-colors shrink-0" />
           <span>Book a call</span>
         </>
       )}

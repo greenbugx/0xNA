@@ -1,5 +1,4 @@
 import React from "react";
-import { Mail } from "lucide-react";
 import CalBookingButton from "./CalBookingButton";
 import VisitorCounter from "./VisitorCounter";
 
@@ -14,16 +13,8 @@ export default function Contact() {
         Book a call to discuss the details or email me your requirements.
       </p>
 
-      <div className="flex items-center gap-2.5 mt-5 flex-wrap justify-center">
+      <div className="flex items-center justify-center mt-5">
         <CalBookingButton />
-
-        <a
-          href="mailto:greenbugx@proton.me"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-b from-[#2a2b2f] via-[#222326] to-[#1c1c1f] hover:from-[#323338] hover:via-[#28292d] hover:to-[#212124] border border-white/[0.09] hover:border-white/[0.16] text-xs font-medium text-zinc-300 hover:text-white transition-colors shadow-[0_1.5px_4px_rgba(0,0,0,0.5),inset_0_1px_0.5px_rgba(255,255,255,0.18)] cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-white/20"
-        >
-          <Mail className="w-3.5 h-3.5 text-zinc-400" />
-          <span>Send Email</span>
-        </a>
       </div>
 
       <VisitorCounter />
