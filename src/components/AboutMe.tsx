@@ -25,7 +25,7 @@ function TechBadge({ name, icon, invert }: TechBadgeProps) {
 
 export default function AboutMe() {
   return (
-    <div className="w-full px-2 text-[13px] sm:text-sm text-zinc-400 leading-[1.65] sm:leading-[1.7] space-y-3.5 sm:space-y-4">
+    <div className="w-full px-2 text-sm sm:text-[15px] text-zinc-400 leading-[1.7] sm:leading-[1.75] space-y-3.5 sm:space-y-4">
       <p>
         I’m an 18-year-old full-stack developer building with{" "}
         <span className="inline-block whitespace-nowrap">

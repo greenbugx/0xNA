@@ -96,7 +96,7 @@ export default function TechStack() {
         Things I blame when it breaks
       </h2>
 
-      <div className="w-full text-[13px] sm:text-sm text-zinc-400 leading-[1.7] sm:leading-[1.75] space-y-3.5 sm:space-y-4">
+      <div className="w-full text-sm sm:text-[15px] text-zinc-400 leading-[1.7] sm:leading-[1.75] space-y-3.5 sm:space-y-4">
         <p>
           I build with{" "}
           <span className="inline-block whitespace-nowrap">
@@ -146,7 +146,7 @@ export default function TechStack() {
             className="overflow-hidden"
           >
             <div className="pt-6 sm:pt-7">
-              <p className="text-[13px] sm:text-sm text-zinc-400 mb-6">
+              <p className="text-sm sm:text-[15px] text-zinc-400 mb-6">
                 Alright G, here&apos;s few more:
               </p>
 

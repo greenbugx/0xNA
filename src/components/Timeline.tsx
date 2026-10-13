@@ -212,7 +212,7 @@ export default function Timeline() {
                           {item.points.map((point, idx) => (
                             <li
                               key={idx}
-                              className="flex items-start gap-2.5 text-zinc-400 text-xs sm:text-[13px] leading-relaxed"
+                              className="flex items-start gap-2.5 text-zinc-400 text-[13px] sm:text-sm leading-relaxed"
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 shrink-0 mt-1.5" />
                               <span>{point}</span>

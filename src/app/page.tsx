@@ -5,6 +5,7 @@ import TechStack from "@/components/TechStack";
 import Projects from "@/components/Projects";
 import Hackathons from "@/components/Hackathons";
 import GithubHeatmap from "@/components/GithubHeatmap";
+import Contact from "@/components/Contact";
 import { getGithubContributionCalendar } from "@/lib/github";
 import type { ContributionCalendar } from "@/lib/github";
 
@@ -29,14 +30,7 @@ export default async function Home() {
           <Timeline />
           <Hackathons />
           <GithubHeatmap calendar={calendar} />
-          <div className="w-full pt-14 sm:pt-16 pb-4 text-center flex flex-col items-center justify-center gap-1 select-none">
-            <p className="text-xs sm:text-sm text-zinc-500">
-              Two last things are going to be added
-            </p>
-            <p className="text-xs sm:text-sm text-zinc-400 font-medium">
-              Soon
-            </p>
-          </div>
+          <Contact />
         </main>
       </div>
     </div>

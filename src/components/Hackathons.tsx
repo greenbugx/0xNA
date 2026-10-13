@@ -257,7 +257,7 @@ export default function Hackathons() {
                   {item.location}
                 </div>
 
-                <p className="text-xs sm:text-[13px] text-zinc-400 leading-relaxed mt-2.5 sm:mt-3">
+                <p className="text-[13px] sm:text-sm text-zinc-400 leading-relaxed mt-2.5 sm:mt-3">
                   {item.description}
                 </p>
               </div>

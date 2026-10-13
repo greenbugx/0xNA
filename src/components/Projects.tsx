@@ -176,7 +176,7 @@ export default function Projects() {
                   {project.date}
                 </div>
 
-                <p className="text-xs text-zinc-400 leading-relaxed">
+                <p className="text-[13px] sm:text-sm text-zinc-400 leading-relaxed">
                   {project.description}
                 </p>
               </div>
