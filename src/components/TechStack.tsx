@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { ChevronRight, ChevronLeft } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 
 interface TechBadgeProps {
   name: string;
@@ -133,46 +132,39 @@ export default function TechStack() {
         </p>
       </div>
 
-      <AnimatePresence initial={false}>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{
-              height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-              opacity: { duration: 0.25, ease: "easeOut" },
-            }}
-            className="overflow-hidden"
-          >
-            <div className="pt-6 sm:pt-7">
-              <p className="text-sm sm:text-[15px] text-zinc-400 mb-6">
-                Alright G, here&apos;s few more:
-              </p>
+      <div
+        className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+          isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="pt-6 sm:pt-7">
+            <p className="text-sm sm:text-[15px] text-zinc-400 mb-6">
+              Alright G, here&apos;s few more:
+            </p>
 
-              <div className="space-y-6 sm:space-y-7">
-                {CATEGORIES.map((cat) => (
-                  <div key={cat.title}>
-                    <h3 className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2.5">
-                      {cat.title}
-                    </h3>
-                    <div className="flex flex-wrap gap-2 pt-0.5">
-                      {cat.items.map((item) => (
-                        <TechBadge
-                          key={item.name}
-                          name={item.name}
-                          icon={item.icon}
-                          invert={item.invert}
-                        />
-                      ))}
-                    </div>
+            <div className="space-y-6 sm:space-y-7">
+              {CATEGORIES.map((cat) => (
+                <div key={cat.title}>
+                  <h3 className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2.5">
+                    {cat.title}
+                  </h3>
+                  <div className="flex flex-wrap gap-2 pt-0.5">
+                    {cat.items.map((item) => (
+                      <TechBadge
+                        key={item.name}
+                        name={item.name}
+                        icon={item.icon}
+                        invert={item.invert}
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      </div>
 
       <div className="mt-5 sm:mt-6">
         <button
