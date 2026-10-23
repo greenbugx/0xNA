@@ -96,7 +96,7 @@ export default function MatteBackground() {
           imageRendering: "pixelated",
         }}
       />
-      <FizzingParticles speed={0.3} />
+      <FizzingParticles speed={0.3} className="hidden lg:block" />
       <span
         style={{
           background:

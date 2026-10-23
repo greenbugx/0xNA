@@ -1,7 +1,7 @@
 "use client";
 "use no memo";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createFizzRenderer, type FizzRenderer } from "./fizzing/renderer";
 
 export interface FizzingParticlesProps {
@@ -32,8 +32,19 @@ export default function FizzingParticles({
   className = "",
 }: FizzingParticlesProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isBigScreen, setIsBigScreen] = useState(false);
 
   useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    setIsBigScreen(media.matches);
+
+    const onChange = (e: MediaQueryListEvent) => setIsBigScreen(e.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isBigScreen) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -112,13 +123,15 @@ export default function FizzingParticles({
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [colors, particleCount, speed, turbulence]);
+  }, [isBigScreen, colors, particleCount, speed, turbulence]);
+
+  if (!isBigScreen) return null;
 
   return (
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className={`absolute inset-0 w-full h-full pointer-events-none ${className}`}
+      className={`absolute inset-0 w-full h-full pointer-events-none hidden lg:block ${className}`}
       style={{ imageRendering: "pixelated" }}
     />
   );
