@@ -130,13 +130,17 @@ function DockItem({
       <AnimatePresence>
         {isHovered && (
           <motion.div
-            initial={{ opacity: 0, y: 6, x: "-50%" }}
+            initial={{ opacity: 0, y: 4, x: "-50%" }}
             animate={{ opacity: 1, y: 0, x: "-50%" }}
-            exit={{ opacity: 0, y: 4, x: "-50%" }}
+            exit={{ opacity: 0, y: 3, x: "-50%" }}
             transition={{ duration: 0.15 }}
-            className="absolute -top-10 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md text-[11px] font-medium tracking-wide bg-[#1c1c1f]/95 text-zinc-100 border border-white/10 shadow-[0_4px_14px_rgba(0,0,0,0.7)] pointer-events-none whitespace-nowrap backdrop-blur-md z-30"
+            className="absolute bottom-[calc(100%+11px)] left-1/2 px-2.5 py-1 rounded-lg text-[11px] font-medium tracking-tight bg-gradient-to-b from-[#2a2b2f] via-[#222326] to-[#1c1c1f] text-zinc-200 border border-white/[0.09] shadow-[0_4px_14px_rgba(0,0,0,0.7),0_1.5px_3px_rgba(0,0,0,0.5),inset_0_1px_0.5px_rgba(255,255,255,0.18)] pointer-events-none whitespace-nowrap z-30 select-none"
           >
             {label}
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-[#1c1c1f] border-r border-b border-white/[0.09]"
+            />
           </motion.div>
         )}
       </AnimatePresence>
