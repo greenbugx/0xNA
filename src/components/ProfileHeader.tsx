@@ -32,7 +32,7 @@ export default function ProfileHeader() {
   const activeIsDay = weatherIsDay !== null ? weatherIsDay : isDay;
 
   return (
-    <header className="w-full max-w-2xl mx-auto flex items-center justify-between gap-4 py-4 px-2 select-none">
+    <header className="w-full max-w-2xl mx-auto flex items-center justify-between gap-3 sm:gap-4 py-3 sm:py-4 px-1 sm:px-2 select-none">
       <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
         <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden shrink-0 ring-2 ring-white/10 ring-offset-2 ring-offset-[#09090b]">
           <Image

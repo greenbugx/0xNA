@@ -29,6 +29,7 @@ const LEVEL_ORDER = [
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const VISIBLE_WEEKDAYS = [1, 3, 5];
 const PAD = 10;
+const CELL_SIZE = 10;
 const CELL_GAP = 3;
 const COLUMN_GAP = 8;
 
@@ -40,9 +41,6 @@ type TooltipState = {
   containerHeight: number;
 } | null;
 
-function squareColor(day: ContributionDay) {
-  return LEVEL_COLORS[day.contributionLevel] ?? day.color;
-}
 
 function dayLabel(day: ContributionDay) {
   const formatted = new Date(`${day.date}T00:00:00Z`).toLocaleDateString(
@@ -54,27 +52,28 @@ function dayLabel(day: ContributionDay) {
 }
 
 function monthLabels(calendar: ContributionCalendar) {
-  const total = calendar.weeks.length;
-  let cursor = 0;
+  const result: { key: string; name: string; left: number }[] = [];
 
-  return calendar.months.flatMap((month) => {
-    let start = calendar.weeks.findIndex(
-      (week) => week.firstDay <= month.firstDay,
+  calendar.months.forEach((month) => {
+    const weekIdx = calendar.weeks.findIndex((w) =>
+      w.contributionDays.some((d) =>
+        d.date.startsWith(month.firstDay.slice(0, 7)),
+      ),
     );
-    if (start === -1) start = 0;
-    start = Math.max(start, cursor);
+    if (weekIdx === -1) return;
+    const left = weekIdx * (CELL_SIZE + CELL_GAP);
+    result.push({
+      key: `${month.year}-${month.firstDay}`,
+      name: month.name,
+      left,
+    });
+  });
 
-    const span = Math.max(1, Math.min(month.totalWeeks, total - start));
-    cursor = start + span;
-
-    return [
-      {
-        key: `${month.year}-${month.firstDay}`,
-        name: month.name,
-        left: (start / total) * 100,
-        width: (span / total) * 100,
-      },
-    ];
+  return result.filter((m, i) => {
+    if (i < result.length - 1) {
+      return result[i + 1].left - m.left >= 28;
+    }
+    return true;
   });
 }
 
@@ -91,11 +90,11 @@ const ContributionGrid = React.memo(function ContributionGrid({
 }: GridProps) {
   return (
     <div
-      className="min-w-0 grid"
+      className="grid select-none"
       style={{
         gap: CELL_GAP,
-        gridTemplateColumns: `repeat(${weeks.length}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(7, var(--cell))`,
+        gridTemplateColumns: `repeat(${weeks.length}, ${CELL_SIZE}px)`,
+        gridTemplateRows: `repeat(7, ${CELL_SIZE}px)`,
       }}
     >
       {weeks.map((week, weekIndex) =>
@@ -106,11 +105,12 @@ const ContributionGrid = React.memo(function ContributionGrid({
             data-day
             aria-label={dayLabel(day)}
             style={{
-              backgroundColor: squareColor(day),
+              backgroundColor:
+                LEVEL_COLORS[day.contributionLevel] ?? day.color,
               gridColumn: weekIndex + 1,
               gridRow: day.weekday + 1,
             }}
-            className="aspect-square w-full h-full rounded-[2.5px] cursor-pointer outline-none transition-transform duration-150 hover:scale-[1.35] focus-visible:scale-[1.35] focus-visible:ring-1 focus-visible:ring-white/60"
+            className="w-[10px] h-[10px] rounded-[2px] cursor-pointer outline-none transition-transform duration-150 hover:scale-[1.35] focus-visible:scale-[1.35] focus-visible:ring-1 focus-visible:ring-white/60"
             onMouseEnter={(event) => show(day, event.currentTarget)}
             onMouseLeave={hide}
             onFocus={(event) => show(day, event.currentTarget)}
@@ -130,6 +130,7 @@ export default function GithubHeatmap({
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>(null);
 
   const show = useCallback(
@@ -160,13 +161,13 @@ export default function GithubHeatmap({
     const width = node.offsetWidth;
     const height = node.offsetHeight;
     const left = Math.min(
-      Math.max(tooltip.centerX, PAD),
+      Math.max(tooltip.centerX - width / 2, PAD),
       Math.max(tooltip.containerWidth - width - PAD, PAD),
     );
-    const top = Math.min(
-      Math.max(tooltip.centerY - height / 2, PAD),
-      Math.max(tooltip.containerHeight - height - PAD, PAD),
-    );
+    const top =
+      tooltip.centerY - height - 8 >= PAD
+        ? tooltip.centerY - height - 8
+        : tooltip.centerY + 16;
 
     node.style.left = `${left}px`;
     node.style.top = `${top}px`;
@@ -191,11 +192,20 @@ export default function GithubHeatmap({
     };
   }, [tooltip, hide]);
 
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    }
+  }, [calendar]);
+
   const levelColors = new Map<string, string>();
   calendar?.weeks.forEach((week) =>
     week.contributionDays.forEach((day) => {
       if (!levelColors.has(day.contributionLevel)) {
-        levelColors.set(day.contributionLevel, squareColor(day));
+        levelColors.set(
+          day.contributionLevel,
+          LEVEL_COLORS[day.contributionLevel] ?? day.color,
+        );
       }
     }),
   );
@@ -203,31 +213,6 @@ export default function GithubHeatmap({
   const legend = LEVEL_ORDER.filter((level) => levelColors.has(level)).map(
     (level) => ({ level, background: levelColors.get(level) as string }),
   );
-
-  const weekCount = calendar?.weeks.length ?? 0;
-  const [cell, setCell] = useState(0);
-  const frameRef = useRef<HTMLDivElement>(null);
-  const labelRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    const frame = frameRef.current;
-    const label = labelRef.current;
-    if (!frame || !label || weekCount === 0) return;
-
-    const measure = () => {
-      const width = frame.clientWidth - label.offsetWidth - COLUMN_GAP;
-      if (width <= 0) return;
-      const fit = (width - CELL_GAP * (weekCount - 1)) / weekCount;
-      const floor = window.matchMedia("(min-width: 768px)").matches ? 0 : 10;
-      const next = fit >= floor ? fit : floor;
-      setCell((prev) => (Math.abs(prev - next) > 0.25 ? next : prev));
-    };
-
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(frame);
-    return () => observer.disconnect();
-  }, [weekCount]);
 
   return (
     <section className="w-full px-2 pt-10 sm:pt-14 select-none">
@@ -264,27 +249,23 @@ export default function GithubHeatmap({
             </p>
           </div>
         ) : (
-          <div className="p-4 sm:p-5 flex flex-col gap-2">
-            <div className="w-full overflow-x-auto" onScroll={hide}>
+          <div className="p-4 sm:p-5 flex flex-col gap-3">
+            <div
+              ref={scrollRef}
+              className="w-full overflow-x-auto scrollbar-none pb-1"
+              onScroll={hide}
+            >
               <div
-                ref={frameRef}
-                className="w-full grid grid-cols-[auto_1fr] gap-y-2"
-                style={
-                  cell
-                    ? ({
-                        ["--cell" as string]: `${cell}px`,
-                        columnGap: COLUMN_GAP,
-                      } as React.CSSProperties)
-                    : { columnGap: COLUMN_GAP }
-                }
+                className="w-max grid grid-cols-[auto_1fr] gap-y-2"
+                style={{ columnGap: COLUMN_GAP }}
               >
                 <div className="w-6 sm:w-7" aria-hidden="true" />
                 <div className="relative h-4">
                   {monthLabels(calendar).map((month) => (
                     <span
                       key={month.key}
-                      className="absolute top-0 truncate text-[11px] sm:text-xs text-zinc-400 font-medium"
-                      style={{ left: `${month.left}%`, width: `${month.width}%` }}
+                      className="absolute top-0 text-[10px] sm:text-[11px] text-zinc-400 font-medium whitespace-nowrap"
+                      style={{ left: `${month.left}px` }}
                     >
                       {month.name}
                     </span>
@@ -292,11 +273,10 @@ export default function GithubHeatmap({
                 </div>
 
                 <div
-                  ref={labelRef}
                   className="w-6 sm:w-7 grid"
                   style={{
                     gap: CELL_GAP,
-                    gridTemplateRows: "repeat(7, var(--cell))",
+                    gridTemplateRows: `repeat(7, ${CELL_SIZE}px)`,
                   }}
                 >
                   {WEEKDAY_LABELS.map((label, weekday) =>
@@ -304,7 +284,7 @@ export default function GithubHeatmap({
                       <span
                         key={label}
                         style={{ gridRow: weekday + 1 }}
-                        className="h-[var(--cell)] flex items-center text-[10px] leading-none text-zinc-500"
+                        className="h-[10px] flex items-center text-[9px] sm:text-[10px] leading-none text-zinc-500"
                       >
                         {label}
                       </span>
@@ -320,7 +300,7 @@ export default function GithubHeatmap({
               </div>
             </div>
 
-            <div className="flex items-end justify-between gap-4 text-xs sm:text-[13px] text-zinc-400 flex-wrap">
+            <div className="flex items-center justify-between gap-4 text-xs sm:text-[13px] text-zinc-400 flex-wrap pt-1">
               <span>
                 This year, I achieved{" "}
                 {calendar.totalContributions.toLocaleString("en-US")}{" "}

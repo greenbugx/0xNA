@@ -424,12 +424,12 @@ export default function Dock() {
 
       <nav
         aria-label="Navigation Dock"
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center max-w-[calc(100vw-1.5rem)]"
+        className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center max-w-[calc(100vw-0.75rem)] sm:max-w-[calc(100vw-1.5rem)]"
       >
         <motion.div
           onMouseMove={(e) => mouseX.set(e.clientX)}
           onMouseLeave={() => mouseX.set(Infinity)}
-          className="flex items-center h-[56px] gap-1 px-2.5 rounded-full bg-[#111113]/90 border border-white/[0.07] backdrop-blur-2xl shadow-[0_14px_45px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.06)] overflow-visible"
+          className="flex items-center origin-bottom scale-[0.84] sm:scale-95 md:scale-100 h-[56px] gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 rounded-full bg-[#111113]/90 border border-white/[0.07] backdrop-blur-2xl shadow-[0_14px_45px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.06)] overflow-visible"
         >
           <DockItem mouseX={mouseX} label="Home" href="/" onHover={playDockSound}>
             <Home className="w-full h-full stroke-[1.8]" />

@@ -74,7 +74,7 @@ uniform float u_speed;
 uniform float u_height;
 uniform float u_depth;
 uniform float u_baseX;
-
+uniform float u_maxReach;
 out vec4 o_state0;
 out vec2 o_state1;
 
@@ -96,7 +96,7 @@ void main() {
   if (abs(dist) > reach || y < -20.0 || y > top || cx + dist < 0.0) {
     dist = -nextRand(seed) * 3.0;
     y = -15.0 + nextRand(seed) * (u_height + 30.0);
-    reach = 100.0 + nextRand(seed) * 150.0;
+    reach = (0.35 + nextRand(seed) * 0.65) * u_maxReach;
     vx = -(0.18 + nextRand(seed) * 0.35);
     vy = (nextRand(seed) - 0.48) * 0.28;
   }
@@ -133,7 +133,7 @@ void main() {
 
   float progress = y < 0.0 ? 0.0 : (y > u_height ? 1.0 : y / u_height);
   float cx = u_baseX + sin(progress * 3.141592653589793) * u_depth;
-  float spread = max(40.0, u_width - cx);
+  float spread = max(18.0, u_width - cx);
 
   float timePhase = u_time * a_freq + a_phase;
   float wobbleX = sin(timePhase) * (2.0 + u * 5.5) * u_turb;
@@ -337,7 +337,10 @@ export function createFizzRenderer(
 
     const targetTotal =
       particleCount ||
-      Math.max(MIN_PARTICLES, Math.min(MAX_PARTICLES, Math.round((width * height) / 22)));
+      Math.max(
+        width < 640 ? 14000 : width < 1024 ? 26000 : MIN_PARTICLES,
+        Math.min(MAX_PARTICLES, Math.round((width * height) / 22))
+      );
     const whiteCount = Math.round(targetTotal * 0.22);
     const bodyCount = targetTotal - whiteCount;
     const anchorCount = Math.round(bodyCount * 0.65);
@@ -390,7 +393,8 @@ export function createFizzRenderer(
       const s = i * WHITE_STATE_STRIDE;
       const o = i * WHITE_STATIC_STRIDE;
       whiteState[s + 1] = -20 + Math.random() * (height + 40);
-      whiteState[s + 4] = 100 + Math.random() * 150;
+      const initialMaxReach = width < 640 ? 30 : width < 1024 ? 100 : 240;
+      whiteState[s + 4] = (0.35 + Math.random() * 0.65) * initialMaxReach;
       whiteState[s] = -Math.random() * whiteState[s + 4] * 0.95;
       whiteState[s + 2] = -(0.18 + Math.random() * 0.35);
       whiteState[s + 3] = (Math.random() - 0.48) * 0.28;
@@ -532,6 +536,7 @@ export function createFizzRenderer(
       height: gl.getUniformLocation(whiteUpdate, "u_height"),
       depth: gl.getUniformLocation(whiteUpdate, "u_depth"),
       baseX: gl.getUniformLocation(whiteUpdate, "u_baseX"),
+      maxReach: gl.getUniformLocation(whiteUpdate, "u_maxReach"),
     };
     const uBodyDraw = {
       width: gl.getUniformLocation(bodyDraw, "u_width"),
@@ -574,8 +579,26 @@ export function createFizzRenderer(
       },
 
       render(time: number, speed: number, turbulence: number, advance: boolean) {
-        const depth = Math.min(260, curWidth * 0.18);
-        const baseX = curWidth - Math.min(420, curWidth * 0.3);
+        const isMobile = curWidth < 640;
+        const isTablet = curWidth >= 640 && curWidth < 1024;
+
+        let depth: number;
+        let baseX: number;
+        let maxReach: number;
+
+        if (isMobile) {
+          depth = Math.min(16, curWidth * 0.04);
+          baseX = curWidth - Math.min(15, curWidth * 0.04);
+          maxReach = Math.min(20, curWidth * 0.05);
+        } else if (isTablet) {
+          depth = Math.min(130, curWidth * 0.14);
+          baseX = curWidth - Math.min(220, curWidth * 0.22);
+          maxReach = Math.min(100, curWidth * 0.12);
+        } else {
+          depth = Math.min(260, curWidth * 0.18);
+          baseX = curWidth - Math.min(420, curWidth * 0.3);
+          maxReach = 240;
+        }
 
         if (advance) {
           gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -598,6 +621,7 @@ export function createFizzRenderer(
           gl.uniform1f(uWhiteUpdate.height, curHeight);
           gl.uniform1f(uWhiteUpdate.depth, depth);
           gl.uniform1f(uWhiteUpdate.baseX, baseX);
+          gl.uniform1f(uWhiteUpdate.maxReach, maxReach);
           gl.bindVertexArray(whiteUpdateVaos[parity]);
           gl.enable(gl.RASTERIZER_DISCARD);
           gl.beginTransformFeedback(gl.POINTS);

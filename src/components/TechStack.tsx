@@ -127,7 +127,7 @@ export default function TechStack() {
           <span className="inline-block whitespace-nowrap">
             <TechBadge name="Arch Linux" icon="/images/arch.svg" />
           </span>{" "}
-          because obviously.{" "}
+          because obviously{" "}
           <span className="font-bold italic text-zinc-200">I use Arch btw :)</span>
         </p>
       </div>
